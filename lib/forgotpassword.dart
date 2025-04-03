@@ -1,134 +1,177 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'customsnackbar.dart';
-import 'login.dart';
-void main(){
-  runApp(Forgotpassword());
+
+class ForgotPasswordScreen extends StatefulWidget {
+  @override
+  _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
 }
 class Forgotpassword extends StatelessWidget {
   const Forgotpassword({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Forgot Password',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ForgotPasswordPage(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isLoading = false;
+  bool _emailExists = false;
+  String _message = "";
+  int _timerSeconds = 0;
+  Timer? _timer;
 
-class ForgotPasswordPage extends StatefulWidget {
-  @override
-  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
-}
+  Future<void> _checkEmailExists() async {
+    final String email = _emailController.text.trim();
 
-class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController emailController = TextEditingController();
-  bool isSubmitting = false;
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> resetPassword() async {
-    if (isSubmitting) return;
-    setState(() => isSubmitting = true);
-
-    if (!_formKey.currentState!.validate()) {
-      setState(() => isSubmitting = false);
+    if (email.isEmpty) {
+      setState(() {
+        _message = "Please enter your email.";
+      });
       return;
     }
 
-    final url = Uri.parse("http://192.168.1.46:3000/api/forgot-password");
+    setState(() {
+      _isLoading = true;
+      _message = "";
+    });
 
-    Map<String, dynamic> requestBody = {
-      "email": emailController.text.trim(),
-    };
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        showCustomSnackBar(context, "Password reset email sent!");
-      } else {
-        showCustomSnackBar(context, "Error: Unable to process request.");
-      }
-    } catch (e) {
-      showCustomSnackBar(context, "Failed to connect to server.");
-    } finally {
-      setState(() => isSubmitting = false);
+    // Dummy check for testing
+    if (email == "test@example.com") {
+      setState(() {
+        _emailExists = true;
+        _message = "Email found! Sending reset link...";
+      });
+      _sendResetLink();
+    } else {
+      setState(() {
+        _emailExists = false;
+        _message = "Email not found in the database.";
+      });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _sendResetLink() async {
+    final String email = _emailController.text.trim();
+
+    // Simulating an API response delay
+    await Future.delayed(Duration(seconds: 2));
+
+    setState(() {
+      _message = "Reset link sent to $email! Check your email.";
+      _startResendTimer();
+    });
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _timerSeconds = 60;
+    });
+
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_timerSeconds > 0) {
+        setState(() {
+          _timerSeconds--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 40),
-                Icon(Icons.lock_reset, size: 80, color: Colors.blue),
-                SizedBox(height: 10),
-                Text("Forgot Password", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
-                SizedBox(height: 20),
-                Text("Enter your email to receive a password reset link."),
-                SizedBox(height: 20),
-                Form(
-                  key: _formKey,
-                  child: TextFormField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Please enter your email";
-                      }
-                      return null;
-                    },
-                  ),
+      backgroundColor: Colors.blue[50],
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        elevation: 0,
+        title: Text("Forgot Password"),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Reset Your Password',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Enter your email to receive password reset instructions.',
+              style: TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                hintText: 'Enter your email',
+                prefixIcon: Icon(Icons.email, color: Colors.blue),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+            ),
+            SizedBox(height: 20),
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _checkEmailExists,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: isSubmitting ? null : resetPassword,
+                child: Text("Check Email", style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            ),
+            SizedBox(height: 10),
+            if (_message.isNotEmpty)
+              Text(
+                _message,
+                style: TextStyle(fontSize: 16, color: _emailExists ? Colors.green : Colors.red),
+              ),
+            SizedBox(height: 20),
+            if (_emailExists && _timerSeconds == 0)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _sendResetLink,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    minimumSize: Size(double.infinity, 50),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: isSubmitting
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text("Send Reset Link", style: TextStyle(fontSize: 16, color: Colors.white)),
+                  child: Text("Send Reset Link", style: TextStyle(fontSize: 18, color: Colors.white)),
                 ),
-                SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (context) => LoginPage()));
-                  },
-                  child: Text("Back to Login", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+              ),
+            if (_timerSeconds > 0)
+              Center(
+                child: Text(
+                  "Resend in $_timerSeconds seconds",
+                  style: TextStyle(fontSize: 16, color: Colors.blue),
                 ),
-              ],
+              ),
+            SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Back to Login", style: TextStyle(color: Colors.blue)),
             ),
-          ),
+          ],
         ),
       ),
     );

@@ -54,7 +54,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Future<void> fetchComplainantCategories() async {
-    String apiUrl = "http://192.168.1.46:3000/api/complainant_category";
+    String apiUrl = "http://192.168.29.225:3000/api/complainant_category";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -109,7 +109,7 @@ class _SignupPageState extends State<SignupPage> {
       errorMessage = '';
     });
 
-    String apiUrl = "http://192.168.1.46:3000/api/register";
+    String apiUrl = "http://192.168.29.225:3000/api/register";
 
     Map<String, dynamic> requestBody = {
       "name": nameController.text.trim(),
@@ -132,8 +132,21 @@ class _SignupPageState extends State<SignupPage> {
       if (response.statusCode == 200) {
         var responseData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Signup Successful! Welcome, ${responseData['name']}")),
-        );
+          SnackBar(content: Text("Signup Successful! Welcome, ${responseData['name']}")));
+
+
+    // Clear all text fields after successful signup
+    nameController.clear();
+    ageController.clear();
+    emailController.clear();
+    phoneController.clear();
+    passwordController.clear();
+    confirmpasswordController.clear();
+    setState(() {
+    selectedGender = 'Male';
+    selectedCategory = null;
+    showPasswordHints = false; // Hide password hints after reset
+    });
       } else {
         var errorResponse = jsonDecode(response.body);
         setState(() {
