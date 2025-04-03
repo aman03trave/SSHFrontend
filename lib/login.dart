@@ -65,8 +65,10 @@ class _FirstPageState extends State<FirstPage> {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
+
         if (jsonResponse['status'] == true && jsonResponse.containsKey('accessToken')) {
           await SecureStorage.saveAccessToken(jsonResponse['accessToken']);
+          await SecureStorage.saveRefreshToken(jsonResponse['refreshToken']);
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", true);
           showCustomSnackBar(context, "Signin Successful!");

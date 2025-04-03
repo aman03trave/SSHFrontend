@@ -43,18 +43,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<bool> refreshToken() async {
+    String? refreshToken = await SecureStorage.getRefreshToken(); // Retrieve refresh token
+
+    if (refreshToken == null) return false; // If no refresh token, return false
+
     final response = await http.post(
       Uri.parse("http://192.168.29.225:3000/api/refresh"),
       headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"refreshToken": refreshToken}), // Send refresh token in body
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      // userName = data['name'];
-      await SecureStorage.saveAccessToken(data['accessToken']);
+      await SecureStorage.saveAccessToken(data['accessToken']); // Save new access token
+      await SecureStorage.saveRefreshToken(data['refreshToken']); // Save new refresh token
       return true;
+    } else {
+      // If refresh fails, clear tokens (optional)
+      await SecureStorage.clearToken();
+      return false;
     }
-    return false;
   }
 
 
