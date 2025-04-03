@@ -1,0 +1,336 @@
+"school_id","school_name","district_id","block_id"
+575,"Angul Model School","OD-01",1
+1,"Angul Govt. High School","OD-01",1
+2,"Banarpal Public School","OD-01",2
+577,"Banarpal Higher Secondary School","OD-01",2
+579,"Chhendipada Residential School","OD-01",3
+3,"Chhendiapada Model School","OD-01",3
+578,"Chhendipada Model School","OD-01",3
+581,"Athamallik Public School","OD-01",4
+4,"Athamallik Secondary School","OD-01",4
+582,"Kishorenagar Govt. High School","OD-01",5
+583,"Kishorenagar Model School","OD-01",5
+5,"Kishorenagar Higher Secondary School","OD-01",5
+585,"Talcher Public School","OD-01",6
+6,"Talcher High School","OD-01",6
+7,"Kaniha Residential School","OD-01",7
+587,"Kaniha Higher Secondary School","OD-01",7
+8,"Pallahara Public School","OD-01",8
+589,"Pallahara Govt. High School","OD-01",8
+434,"Chhendipada Govt. High School","OD-01",9
+9,"Balasore Govt. High School","OD-02",9
+591,"Balasore Model School","OD-02",9
+593,"Basta Public School","OD-02",10
+10,"Basta Secondary School","OD-02",10
+435,"Jarapada Public School","OD-01",10
+595,"Remuna Higher Secondary School","OD-02",11
+452,"Bantala Govt. High School","OD-01",11
+11,"Remuna Public School","OD-02",11
+594,"Remuna Model School","OD-02",11
+596,"Jaleswar Govt. High School","OD-02",12
+12,"Jaleswar Model School","OD-02",12
+453,"Purunakote Secondary School","OD-01",12
+597,"Jaleswar Residential School","OD-02",12
+599,"Bhograi Model School","OD-02",13
+454,"Khamar Model School","OD-01",13
+13,"Bhograi High School","OD-02",13
+455,"Handapa Public School","OD-01",14
+14,"Baliapal Secondary School","OD-02",14
+601,"Baliapal Public School","OD-02",14
+603,"Nilagiri Higher Secondary School","OD-02",15
+15,"Nilagiri Govt. School","OD-02",15
+506,"Jarapada Govt. High School","OD-01",15
+16,"Oupada Public School","OD-02",16
+605,"Oupada Residential School","OD-02",16
+507,"Purunakote Model School","OD-01",16
+436,"Soro Govt. High School","OD-02",17
+508,"Bantala Public School","OD-01",17
+509,"Handapa Secondary School","OD-01",18
+437,"Simulia Model School","OD-02",18
+456,"Khaira Govt. High School","OD-02",19
+457,"Singla Secondary School","OD-02",20
+607,"Bargarh Model School","OD-03",21
+17,"Bargarh High School","OD-03",21
+510,"Soro Higher Secondary School","OD-02",21
+18,"Barpali Public School","OD-03",22
+511,"Simulia Govt. High School","OD-02",22
+609,"Barpali Govt. High School","OD-03",22
+19,"Bheden Model School","OD-03",23
+611,"Bheden Secondary School","OD-03",23
+512,"Khaira Model School","OD-02",23
+613,"Bhatli Public School","OD-03",24
+20,"Bhatli Higher Secondary School","OD-03",24
+513,"Baliapal Public School","OD-02",24
+615,"Ambabhona Model School","OD-03",25
+21,"Ambabhona Govt. School","OD-03",25
+617,"Atabira Residential School","OD-03",26
+22,"Atabira High School","OD-03",26
+619,"Padampur Govt. High School","OD-03",27
+23,"Padampur Public School","OD-03",27
+24,"Paikmal Model School","OD-03",28
+621,"Paikmal Secondary School","OD-03",28
+514,"Gaisilat Govt. High School","OD-03",29
+438,"Gaisilat Secondary School","OD-03",29
+515,"Bijepur Secondary School","OD-03",30
+439,"Bijepur Public School","OD-03",30
+458,"Sohela Govt. High School","OD-03",31
+516,"Jharbandh Model School","OD-03",31
+623,"Bhadrak Model School","OD-04",32
+517,"Sohela Public School","OD-03",32
+25,"Bhadrak Govt. High School","OD-04",32
+459,"Jharbandh Secondary School","OD-03",32
+26,"Basudevpur Public School","OD-04",33
+625,"Basudevpur Higher Secondary School","OD-04",33
+27,"Bhandaripokhari Model School","OD-04",34
+627,"Bhandaripokhari Residential School","OD-04",34
+629,"Bonth Govt. High School","OD-04",35
+28,"Bonth Secondary School","OD-04",35
+631,"Chandabali Public School","OD-04",36
+29,"Chandabali Higher Secondary School","OD-04",36
+30,"Dhamanagar Govt. School","OD-04",37
+633,"Dhamanagar Model School","OD-04",37
+635,"Tihidi Residential School","OD-04",38
+31,"Tihidi Public School","OD-04",38
+32,"Bolangir Govt. High School","OD-05",39
+518,"Basudevpur Higher Secondary School","OD-04",39
+440,"Dhamnagar Model School","OD-04",39
+519,"Naikanidihi Model School","OD-04",40
+33,"Deogam Model School","OD-05",40
+441,"Tihidi Govt. High School","OD-04",40
+460,"Barapada Public School","OD-04",41
+34,"Gudvella Public School","OD-05",41
+520,"Barapada Govt. High School","OD-04",41
+35,"Puintala Secondary School","OD-05",42
+461,"Naikanidihi Model School","OD-04",42
+521,"Bhandaripokhari Secondary School","OD-04",42
+36,"Luisinga High School","OD-05",43
+37,"Agalapur Govt. School","OD-05",44
+38,"Titilagarh Public School","OD-05",45
+39,"Saintala Model School","OD-05",46
+442,"Belpada Secondary School","OD-05",47
+522,"Muribahal Govt. High School","OD-05",47
+523,"Turekela Model School","OD-05",48
+443,"Patnagarh Public School","OD-05",48
+462,"Muribahal Govt. High School","OD-05",49
+524,"Belpada Public School","OD-05",49
+525,"Patnagarh Secondary School","OD-05",50
+463,"Turekela Model School","OD-05",50
+40,"Boudh Higher Secondary School","OD-06",53
+41,"Harbhanga Govt. School","OD-06",54
+42,"Kantamal Model School","OD-06",55
+444,"Manmunda Model School","OD-06",56
+43,"Cuttack Govt. High School","OD-07",56
+637,"Cuttack Town Model School","OD-07",56
+639,"Cuttack Sadar Residential School","OD-07",57
+44,"Cuttack Sadar Public School","OD-07",57
+445,"Baunsuni Govt. High School","OD-06",57
+464,"Baghiapada Secondary School","OD-06",58
+526,"Baghiapada Model School","OD-06",58
+45,"Baranga Model School","OD-07",58
+641,"Baranga Govt. High School","OD-07",58
+465,"Gochhapada Public School","OD-06",59
+643,"Niali Higher Secondary School","OD-07",59
+46,"Niali Secondary School","OD-07",59
+527,"Gochhapada Govt. High School","OD-06",59
+645,"Kantapada Public School","OD-07",60
+47,"Kantapada Govt. School","OD-07",60
+528,"Manmunda Secondary School","OD-06",60
+48,"Salepur High School","OD-07",61
+647,"Salepur Model School","OD-07",61
+529,"Baunsuni Public School","OD-06",61
+649,"Nischintakoili Govt. High School","OD-07",62
+49,"Nischintakoili Public School","OD-07",62
+651,"Mahanga Secondary School","OD-07",63
+50,"Mahanga Model School","OD-07",63
+446,"Tangi Public School","OD-07",64
+51,"Deogarh Govt. High School","OD-08",64
+447,"Athagarh Secondary School","OD-07",65
+52,"Barkote Public School","OD-08",65
+530,"Banki Higher Secondary School","OD-07",66
+53,"Reamal Secondary School","OD-08",66
+466,"Banki Model School","OD-07",66
+467,"Dhabaleswar Govt. High School","OD-07",67
+531,"Dhabaleswar Model School","OD-07",67
+54,"Dhenkanal Govt. High School","OD-09",67
+532,"Athagarh Govt. High School","OD-07",68
+468,"Dhenkanal Govt. High School","OD-08",68
+55,"Bhuban Model School","OD-09",68
+469,"Bhuban Secondary School","OD-08",69
+56,"Kamakshyanagar Public School","OD-09",69
+533,"Tangi Public School","OD-07",69
+57,"Gandia Secondary School","OD-09",70
+470,"Kamakhyanagar Model School","OD-08",70
+58,"Hindol Govt. School","OD-09",71
+471,"Gandia Public School","OD-08",71
+534,"Bhuban Govt. High School","OD-08",72
+59,"Paralakhemundi High School","OD-10",72
+472,"Berhampur Govt. High School","OD-09",72
+60,"Mohana Public School","OD-10",73
+535,"Kamakhyanagar Secondary School","OD-08",73
+473,"Chhatrapur Secondary School","OD-09",73
+536,"Gandia Model School","OD-08",74
+474,"Gopalpur Model School","OD-09",74
+61,"R. Udayagiri Secondary School","OD-10",74
+475,"Aska Public School","OD-09",75
+537,"Parjang Public School","OD-08",75
+62,"Gumma Model School","OD-10",75
+476,"Jajpur Town Govt. High School","OD-10",76
+538,"Berhampur Higher Secondary School","OD-09",76
+63,"Kasinagar Higher Secondary School","OD-10",76
+539,"Chhatrapur Govt. High School","OD-09",77
+477,"Binjharpur Secondary School","OD-10",77
+64,"Berhampur Govt. High School","OD-11",77
+478,"Dharmasala Model School","OD-10",78
+65,"Bhanjanagar Public School","OD-11",78
+540,"Gopalpur Secondary School","OD-09",78
+479,"Rasulpur Public School","OD-10",79
+541,"Aska Model School","OD-09",79
+66,"Chhatrapur Secondary School","OD-11",79
+480,"Kendrapara Govt. High School","OD-11",80
+542,"Jajpur Town Secondary School","OD-10",80
+67,"Hinjilicut Model School","OD-11",80
+543,"Binjharpur Model School","OD-10",81
+68,"Gopalpur High School","OD-11",81
+481,"Mahakalpara Secondary School","OD-11",81
+544,"Dharmasala Govt. High School","OD-10",82
+69,"Digapahandi Public School","OD-11",82
+482,"Pattamundai Model School","OD-11",82
+70,"Aska Govt. School","OD-11",83
+545,"Rasulpur Public School","OD-10",83
+483,"Rajkanika Public School","OD-11",83
+71,"Buguda Higher Secondary School","OD-11",84
+546,"Mahakalpara Secondary School","OD-11",84
+484,"Keonjhar Govt. High School","OD-12",84
+485,"Anandapur Secondary School","OD-12",85
+547,"Pattamundai Model School","OD-11",85
+72,"Jagatsinghpur High School","OD-12",85
+548,"Rajkanika Govt. High School","OD-11",86
+486,"Champua Model School","OD-12",86
+73,"Balikuda Model School","OD-12",86
+549,"Derabis Public School","OD-11",87
+487,"Ghatgaon Public School","OD-12",87
+74,"Kujang Public School","OD-12",87
+75,"Raghunathpur Secondary School","OD-12",88
+488,"Koraput Govt. High School","OD-13",88
+550,"Keonjhar Govt. High School","OD-12",88
+551,"Anandapur Secondary School","OD-12",89
+489,"Jeypore Secondary School","OD-13",89
+76,"Tirtol Govt. School","OD-12",89
+552,"Champua Model School","OD-12",90
+490,"Kotpad Model School","OD-13",90
+77,"Jajpur Govt. High School","OD-13",90
+78,"Dharmasala Public School","OD-13",91
+553,"Ghatgaon Public School","OD-12",91
+491,"Laxmipur Public School","OD-13",91
+554,"Jeypore Higher Secondary School","OD-13",92
+79,"Binjharpur Secondary School","OD-13",92
+492,"Malkangiri Govt. High School","OD-14",92
+80,"Dasarathpur Model School","OD-13",93
+555,"Kotpad Govt. High School","OD-13",93
+493,"Mathili Secondary School","OD-14",93
+494,"Kalimela Model School","OD-14",94
+556,"Laxmipur Secondary School","OD-13",94
+81,"Sukinda Higher Secondary School","OD-13",94
+82,"Jharsuguda Govt. High School","OD-14",95
+495,"Korukonda Public School","OD-14",95
+557,"Boipariguda Model School","OD-13",95
+558,"Mathili Higher Secondary School","OD-14",96
+83,"Belpahar Public School","OD-14",96
+496,"Baripada Govt. High School","OD-15",96
+497,"Udala Secondary School","OD-15",97
+559,"Kalimela Govt. High School","OD-14",97
+84,"Laikera Secondary School","OD-14",97
+560,"Korukonda Secondary School","OD-14",98
+498,"Karanjia Model School","OD-15",98
+85,"Lakhanpur Model School","OD-14",98
+561,"Podia Model School","OD-14",99
+86,"Bhawanipatna High School","OD-15",99
+499,"Rairangpur Public School","OD-15",99
+562,"Udala Higher Secondary School","OD-15",100
+87,"Junagarh Govt. School","OD-15",100
+88,"Dharamgarh Model School","OD-15",101
+563,"Karanjia Govt. High School","OD-15",101
+564,"Rairangpur Secondary School","OD-15",102
+89,"Kesinga Public School","OD-15",102
+565,"Betnoti Model School","OD-15",103
+90,"Narla Higher Secondary School","OD-15",103
+91,"Phulbani High School","OD-16",104
+92,"Baliguda Public School","OD-16",105
+93,"G.Udayagiri Secondary School","OD-16",106
+94,"Raikia Model School","OD-16",107
+95,"Kendrapara Govt. High School","OD-17",108
+96,"Patkura Model School","OD-17",109
+97,"Aul Public School","OD-17",110
+98,"Rajnagar Secondary School","OD-17",111
+99,"Keonjhar High School","OD-18",112
+100,"Anandapur Public School","OD-18",113
+101,"Champua Secondary School","OD-18",114
+102,"Ghasipura Model School","OD-18",115
+103,"Bhubaneswar Govt. High School","OD-19",116
+104,"Jatni Public School","OD-19",117
+105,"Banpur Secondary School","OD-19",118
+106,"Balugaon Model School","OD-19",119
+107,"Koraput High School","OD-20",120
+108,"Jeypore Public School","OD-20",121
+109,"Nandapur Secondary School","OD-20",122
+110,"Lamtaput Model School","OD-20",123
+111,"Malkangiri High School","OD-21",124
+112,"Chitrakonda Public School","OD-21",125
+113,"Mathili Secondary School","OD-21",126
+114,"Baripada Govt. High School","OD-22",127
+115,"Rairangpur Model School","OD-22",128
+116,"Karanjia Public School","OD-22",129
+117,"Nayagarh High School","OD-23",130
+118,"Khandapara Public School","OD-23",131
+119,"Dasapalla Secondary School","OD-23",132
+120,"Puri Govt. High School","OD-24",133
+121,"Konark Public School","OD-24",134
+122,"Brahmagiri Secondary School","OD-24",135
+123,"Rayagada High School","OD-25",136
+124,"Gunupur Model School","OD-25",137
+125,"Bissamcuttack Public School","OD-25",138
+126,"Sambalpur Govt. High School","OD-26",139
+127,"Burla Model School","OD-26",140
+128,"Rairakhol Public School","OD-26",141
+129,"Sonepur High School","OD-27",142
+130,"Binka Model School","OD-27",143
+131,"Tarbha Public School","OD-27",144
+132,"Sundargarh Govt. High School","OD-28",145
+133,"Rourkela Public School","OD-28",146
+134,"Bonai Secondary School","OD-28",147
+135,"Rajgangpur Model School","OD-28",148
+426,"Nabarangpur Govt. High School","OD-29",149
+653,"Nabarangpur Public School","OD-29",149
+427,"Umerkote Public School","OD-29",150
+654,"Umerkote Model School","OD-29",150
+655,"Umerkote Higher Secondary School","OD-29",150
+428,"Raighar Secondary School","OD-29",151
+657,"Raighar Residential School","OD-29",151
+659,"Chandahandi Public School","OD-29",152
+429,"Chandahandi Model School","OD-29",152
+430,"Nuapada Govt. High School","OD-30",153
+661,"Nuapada Model School","OD-30",153
+663,"Khariar Higher Secondary School","OD-30",154
+431,"Khariar Public School","OD-30",154
+432,"Komna Secondary School","OD-30",155
+665,"Komna Residential School","OD-30",155
+667,"Sinapali Govt. High School","OD-30",156
+433,"Sinapali Model School","OD-30",156
+448,"Kosagumuda Higher Secondary School","OD-29",157
+449,"Tentulikhunti Model School","OD-29",158
+450,"Boden Govt. High School","OD-30",159
+451,"Jonka Public School","OD-30",160
+500,"Nandahandi Govt. High School","OD-29",161
+501,"Paparahandi Secondary School","OD-29",162
+502,"Dabugam Model School","OD-29",163
+566,"Kosagumuda Secondary School","OD-29",164
+503,"Bargaon Govt. High School","OD-30",164
+504,"Dharambandha Secondary School","OD-30",165
+567,"Tentulikhunti Model School","OD-29",165
+505,"Ghatagaon Model School","OD-30",166
+568,"Dabugam Govt. High School","OD-29",166
+569,"Raighar Public School","OD-29",167
+570,"Boden Secondary School","OD-30",168
+571,"Dharambandha Govt. High School","OD-30",169
+572,"Sinapali Higher Secondary School","OD-30",170
+573,"Jonka Model School","OD-30",171

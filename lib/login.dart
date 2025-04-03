@@ -35,6 +35,26 @@ class _FirstPageState extends State<FirstPage> {
   bool isLoggingIn = false;
 
   @override
+
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
+    if (isLoggedIn) {
+      // Redirect to dashboard if already logged in
+      Future.delayed(Duration.zero, () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
+      });
+    }
+  }
+
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
@@ -50,7 +70,7 @@ class _FirstPageState extends State<FirstPage> {
       return;
     }
 
-    final url = Uri.parse("http://192.168.29.225:3000/api/login");
+    final url = Uri.parse("http://192.168.1.46:3000/api/login");
     Map<String, dynamic> requestBody = {
       "email": emailController.text.trim(),
       "password": passwordController.text,
