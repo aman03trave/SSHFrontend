@@ -7,6 +7,7 @@ import 'customsnackbar.dart';
 import 'userdashboard.dart'; // Ensure this file contains DashboardScreen class
 import 'package:shared_preferences/shared_preferences.dart';
 import 'storage_service.dart';
+import 'forgotpassword.dart';
 
 void main() {
   runApp(LoginPage());
@@ -69,8 +70,9 @@ class _FirstPageState extends State<FirstPage> {
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
 
-        if (jsonResponse['status'] == true && jsonResponse.containsKey('accessToken')) {
+        if (jsonResponse['status'] == true && jsonResponse.containsKey('accessToken') && jsonResponse.containsKey('refreshToken') ) {
           await SecureStorage.saveAccessToken(jsonResponse['accessToken']);
+          await SecureStorage.saveRefreshToken(jsonResponse['refreshToken']);
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", true);
           showCustomSnackBar(context, "Signin Successful!");
@@ -149,6 +151,18 @@ class _FirstPageState extends State<FirstPage> {
                     ],
                   ),
                 ),
+                SizedBox(height:10),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => Forgotpassword()));
+                  },
+
+                 child:  Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text("Forgot Password?", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),textAlign: TextAlign.left,)),
+                ),
+
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: isLoggingIn ? null : login,

@@ -34,7 +34,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController confirmpasswordController = TextEditingController();
 
   String selectedGender = 'Male';
-  String roleName = 'Complainant';
+  String roleName = 'complainant';
   String? selectedCategory;
   List<String> complainantCategories = [];
 
@@ -204,7 +204,9 @@ class _SignupPageState extends State<SignupPage> {
                     isExpanded: true, // Ensures it doesn't overflow
                     value: selectedCategory,
                     hint: Text("Complainant Category"),
-                    items: complainantCategories.map((category) => DropdownMenuItem(value: category, child: Text(category))).toList(),
+                    items: complainantCategories.map((category)
+                    => DropdownMenuItem(value: category,
+                        child: Text(category))).toList(),
                     onChanged: (value) => setState(() => selectedCategory = value),
                     decoration: InputDecoration(border: OutlineInputBorder()),
                   ),
