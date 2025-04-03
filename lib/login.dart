@@ -4,9 +4,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'signup.dart';
 import 'customsnackbar.dart';
-import 'userdashboard.dart'; // Ensure this file contains DashboardScreen class
+import 'userdashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'storage_service.dart';
+import 'forgotpassword.dart';
 
 void main() {
   runApp(LoginPage());
@@ -41,7 +42,7 @@ class _FirstPageState extends State<FirstPage> {
   }
 
   Future<void> login() async {
-    if (isLoggingIn) return; // Prevent multiple taps
+    if (isLoggingIn) return;
     setState(() => isLoggingIn = true);
 
     if (!_formKey.currentState!.validate()) {
@@ -49,8 +50,7 @@ class _FirstPageState extends State<FirstPage> {
       return;
     }
 
-    final url = Uri.parse("http://192.168.1.46:3000/api/login");
-
+    final url = Uri.parse("http://192.168.29.225:3000/api/login");
     Map<String, dynamic> requestBody = {
       "email": emailController.text.trim(),
       "password": passwordController.text,
@@ -63,18 +63,13 @@ class _FirstPageState extends State<FirstPage> {
         body: jsonEncode(requestBody),
       );
 
-      print("Response status: ${response.statusCode}");
-      print("Response body: ${response.body}");
-
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-
         if (jsonResponse['status'] == true && jsonResponse.containsKey('accessToken')) {
           await SecureStorage.saveAccessToken(jsonResponse['accessToken']);
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", true);
           showCustomSnackBar(context, "Signin Successful!");
-
           Future.delayed(Duration(milliseconds: 300), () {
             Navigator.pushReplacement(
               context,
@@ -88,7 +83,6 @@ class _FirstPageState extends State<FirstPage> {
         showCustomSnackBar(context, "Login failed. Please check your credentials.");
       }
     } catch (e) {
-      print("Error: $e");
       showCustomSnackBar(context, "Failed to connect to the server.");
     } finally {
       setState(() => isLoggingIn = false);
@@ -124,12 +118,7 @@ class _FirstPageState extends State<FirstPage> {
                           labelText: "Email",
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter your email";
-                          }
-                          return null;
-                        },
+                        validator: (value) => value!.isEmpty ? "Please enter your email" : null,
                       ),
                       SizedBox(height: 10),
                       TextFormField(
@@ -139,14 +128,22 @@ class _FirstPageState extends State<FirstPage> {
                           labelText: "Password",
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Please enter your password";
-                          }
-                          return null;
-                        },
+                        validator: (value) => value!.isEmpty ? "Please enter your password" : null,
                       ),
                     ],
+                  ),
+                ),
+                SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
+                      );
+                    },
+                    child: Text("Forgot Password?", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 SizedBox(height: 20),

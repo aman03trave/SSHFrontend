@@ -44,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<bool> refreshToken() async {
     final response = await http.post(
-      Uri.parse("http://192.168.1.46:3000/refresh"),
+      Uri.parse("http://192.168.29.225:3000/api/refresh"),
       headers: {"Content-Type": "application/json"},
     );
 
@@ -61,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> fetchDashboardData() async {
     String? token = await SecureStorage.getAccessToken();
 
-    final url = Uri.parse("http://192.168.1.46:3000/api/dashboard");
+    final url = Uri.parse("http://192.168.29.225:3000/api/dashboard");
 
     http.Client client = http.Client();
 
