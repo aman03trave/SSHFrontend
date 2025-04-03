@@ -32,6 +32,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String location = "Fetching location...";
   String userName = "";
+  String user_id = "";
+  String? pos;
   bool isLoading = true;
 
   @override
@@ -43,33 +45,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<bool> refreshToken() async {
-    String? refreshToken = await SecureStorage.getRefreshToken(); // Retrieve refresh token
+    String? refreshToken = await SecureStorage.getRefreshToken();
 
-    if (refreshToken == null) return false; // If no refresh token, return false
+    if (refreshToken == null) {
+      print("⚠️ No refresh token found.");
+      return false;
+    }
 
     final response = await http.post(
-      Uri.parse("http://192.168.29.225:3000/api/refresh"),
+      Uri.parse("http://192.168.1.46:3000/api/refresh"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"refreshToken": refreshToken}), // Send refresh token in body
+      body: jsonEncode({"refreshToken": refreshToken}),
     );
+
+    print("🔄 Refresh Token Request Sent.");
+    print("📥 Response Status: ${response.statusCode}");
+    print("📥 Response Body: ${response.body}");
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      await SecureStorage.saveAccessToken(data['accessToken']); // Save new access token
-      await SecureStorage.saveRefreshToken(data['refreshToken']); // Save new refresh token
-      return true;
+      if (data['newAccessToken'] != null) {
+        await SecureStorage.saveAccessToken(data['newAccessToken']);
+        // await SecureStorage.saveRefreshToken(data['refreshToken']);
+        print("✅ Tokens refreshed successfully.");
+        return true;
+      } else {
+        print("❌ Missing tokens in response.");
+      }
     } else {
-      // If refresh fails, clear tokens (optional)
+      print("❌ Failed to refresh token. Clearing storage.");
       await SecureStorage.clearToken();
-      return false;
     }
+
+    return false;
   }
+
 
 
   Future<void> fetchDashboardData() async {
     String? token = await SecureStorage.getAccessToken();
 
-    final url = Uri.parse("http://192.168.29.225:3000/api/dashboard");
+    final url = Uri.parse("http://192.168.1.46:3000/api/dashboard");
 
     http.Client client = http.Client();
 
@@ -89,8 +105,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (response.statusCode == 401) {
         bool refreshed = await refreshToken();
+        print("refresh function called");
         if (refreshed) {
           token = await SecureStorage.getAccessToken();
+          print(token);
           response = await http.get(
             Uri.parse("http://192.168.1.46:3000/api/dashboard"),
             headers: {"Authorization": "Bearer $token"},
@@ -102,6 +120,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
         userName = jsonResponse['name'];
+        user_id = jsonResponse['user']['user_id'];
+
         print("Response Body: ${response.body}");
       } else {
         print("Failed to fetch dashboard data");
@@ -150,12 +170,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         location = placemarks[0].locality ?? "Unknown city"; // Display city name
       });
     }
-
+    logDashboardVisit(user_id, location);
 
   }
 
   Future<void> logDashboardVisit(String userId, String coordinates) async {
-    final url = Uri.parse('http://192.168.1.46:3000/api/log-visit'); // Replace with your backend URL
+    final url = Uri.parse('http://192.168.1.46:3000/api/visit'); // Replace with your backend URL
 
     await http.post(
       url,
