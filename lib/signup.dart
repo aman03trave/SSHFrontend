@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login.dart';
 import 'customsnackbar.dart';
+import 'config.dart';
 
 void main() {
   runApp(MyApp());
@@ -54,7 +55,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Future<void> fetchComplainantCategories() async {
-    String apiUrl = "http://192.168.29.225:3000/api/complainant_category";
+    String apiUrl = "$baseURL/complainant_category";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -109,7 +110,7 @@ class _SignupPageState extends State<SignupPage> {
       errorMessage = '';
     });
 
-    String apiUrl = "http://192.168.29.225:3000/api/register";
+    String apiUrl = "$baseURL/register";
 
     Map<String, dynamic> requestBody = {
       "name": nameController.text.trim(),

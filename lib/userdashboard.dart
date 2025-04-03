@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -7,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'profile.dart';
 import 'AddGrievance.dart';
 import 'storage_service.dart';
+import 'config.dart';
 
 void main() {
   runApp(const MyApp());
@@ -53,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     final response = await http.post(
-      Uri.parse("http://192.168.1.46:3000/api/refresh"),
+      Uri.parse("$baseURL/refresh"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"refreshToken": refreshToken}),
     );
@@ -85,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> fetchDashboardData() async {
     String? token = await SecureStorage.getAccessToken();
 
-    final url = Uri.parse("http://192.168.1.46:3000/api/dashboard");
+    final url = Uri.parse("$baseURL/dashboard");
 
     http.Client client = http.Client();
 
@@ -110,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           token = await SecureStorage.getAccessToken();
           print(token);
           response = await http.get(
-            Uri.parse("http://192.168.1.46:3000/api/dashboard"),
+            Uri.parse("$baseURL/dashboard"),
             headers: {"Authorization": "Bearer $token"},
           );
         }
@@ -175,7 +175,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> logDashboardVisit(String userId, String coordinates) async {
-    final url = Uri.parse('http://192.168.1.46:3000/api/visit'); // Replace with your backend URL
+    final url = Uri.parse('$baseURL/visit'); // Replace with your backend URL
 
     await http.post(
       url,

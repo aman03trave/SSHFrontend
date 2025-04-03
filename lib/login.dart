@@ -8,6 +8,7 @@ import 'userdashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'storage_service.dart';
 import 'forgotpassword.dart';
+import 'config.dart';
 
 void main() {
   runApp(LoginPage());
@@ -70,7 +71,7 @@ class _FirstPageState extends State<FirstPage> {
       return;
     }
 
-    final url = Uri.parse("http://192.168.1.46:3000/api/login");
+    final url = Uri.parse("$baseURL/login");
     Map<String, dynamic> requestBody = {
       "email": emailController.text.trim(),
       "password": passwordController.text,

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:ssh/login.dart';
 import 'storage_service.dart';
+import 'config.dart';
 
 class GrievanceScreen extends StatefulWidget {
   @override
@@ -36,7 +37,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   }
 
   Future<void> fetchDistricts() async {
-    final response = await http.get(Uri.parse('http://192.168.1.46:3000/api/districts'));
+    final response = await http.get(Uri.parse('$baseURL/districts'));
     if (response.statusCode == 200) {
       setState(() {
         districts = jsonDecode(response.body)['districts'];
@@ -47,7 +48,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   Future<void> fetchBlocks(String districtname) async {
     print("District Name: $districtname");
     final response = await http.post(
-      Uri.parse('http://192.168.1.46:3000/api/blocks'),
+      Uri.parse('$baseURL/blocks'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"district_name": districtname}),
     );
@@ -65,7 +66,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
 
   Future<void> fetchSchools(String blockId) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.46:3000/api/schools'),
+      Uri.parse('$baseURL/schools'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"block_id": blockId}),
     );
@@ -80,7 +81,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     }
   }
   Future<void> fetchGrievanceCategories() async {
-    final response = await http.get(Uri.parse('http://192.168.1.46:3000/api/grievance_category'));
+    final response = await http.get(Uri.parse('$baseURL/grievance_category'));
     if (response.statusCode == 200) {
       setState(() {
         categories = jsonDecode(response.body)['grievance_category'];
@@ -114,7 +115,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     if (refreshToken == null) return false; // If no refresh token, return false
 
     final response = await http.post(
-      Uri.parse("http://192.168.1.46:3000/api/refresh"),
+      Uri.parse("$baseURL/refresh"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"refreshToken": refreshToken}), // Send refresh token in body
     );
@@ -135,7 +136,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     String? token = await SecureStorage.getAccessToken();
     if (!_formKey.currentState!.validate()) return;
 
-    var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.46:3000/api/addgrievance'));
+    var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
     request.headers['Authorization'] = 'Bearer $token';
 
     request.fields['district_name'] = selectedDistrict ?? '';
@@ -170,7 +171,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       print("refresh function called");
       if (refreshed){
         token = await SecureStorage.getAccessToken();
-        var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.46:3000/api/addgrievance'));
+        var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
         request.headers['Authorization'] = 'Bearer $token';
       }
       else{
