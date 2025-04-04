@@ -7,6 +7,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:ssh/login.dart';
 import 'storage_service.dart';
 import 'config.dart';
+// import 'logvisit.dart';
+import 'refreshtoken.dart';
 
 class GrievanceScreen extends StatefulWidget {
   @override
@@ -108,29 +110,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   }
 
 
-  Future<bool> refreshToken() async {
-    String? refreshToken = await SecureStorage.getRefreshToken();
-    print(refreshToken);
-
-    if (refreshToken == null) return false; // If no refresh token, return false
-
-    final response = await http.post(
-      Uri.parse("$baseURL/refresh"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"refreshToken": refreshToken}), // Send refresh token in body
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      await SecureStorage.saveAccessToken(data['newAccessToken']); // Save new access token
-      // await SecureStorage.saveRefreshToken(data['refreshToken']); // Save new refresh token
-      return true;
-    } else {
-      // If refresh fails, clear tokens (optional)
-      await SecureStorage.clearToken();
-      return false;
-    }
-  }
 
   Future<void> submitGrievance() async {
     String? token = await SecureStorage.getAccessToken();
