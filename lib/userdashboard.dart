@@ -7,6 +7,7 @@ import 'profile.dart';
 import 'AddGrievance.dart';
 import 'storage_service.dart';
 import 'config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,6 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (refreshToken == null) {
       print("⚠️ No refresh token found.");
+
       return false;
     }
 
@@ -113,6 +115,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Uri.parse("$baseURL/dashboard"),
             headers: {"Authorization": "Bearer $token"},
           );
+        }
+        else{
+          await SecureStorage.clearToken();
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool("isLoggedIn", false);
         }
       }
       print(response);

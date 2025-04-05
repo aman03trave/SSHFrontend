@@ -136,58 +136,51 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     String? token = await SecureStorage.getAccessToken();
     if (!_formKey.currentState!.validate()) return;
 
-    var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
-    request.headers['Authorization'] = 'Bearer $token';
+    Future<http.StreamedResponse> sendRequest(String? token) async {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
+      request.headers['Authorization'] = 'Bearer $token';
 
-    request.fields['district_name'] = selectedDistrict ?? '';
-    request.fields['block_id'] = selectedBlock ?? '';
-    request.fields['school_id'] = selectedSchool ?? '';
-    request.fields['grievance_category'] = selectedCategory ?? '';
-    request.fields['title'] = titleController.text;
-    request.fields['description'] = descriptionController.text;
+      request.fields['district_name'] = selectedDistrict ?? '';
+      request.fields['block_id'] = selectedBlock ?? '';
+      request.fields['school_id'] = selectedSchool ?? '';
+      request.fields['grievance_category'] = selectedCategory ?? '';
+      request.fields['title'] = titleController.text;
+      request.fields['description'] = descriptionController.text;
 
-    print("Submitting grievance with data: ${request.fields}");
+      if (selectedImage != null) {
+        request.files.add(await http.MultipartFile.fromPath('image', selectedImage!.path));
+      }
+      if (selectedDocument != null) {
+        request.files.add(await http.MultipartFile.fromPath('document', selectedDocument!.path));
+      }
 
-    if (selectedImage != null) {
-      request.files.add(await http.MultipartFile.fromPath('image', selectedImage!.path));
-      print("Image selected: ${selectedImage!.path}");
+      return await request.send();
     }
-    if (selectedDocument != null) {
-      request.files.add(await http.MultipartFile.fromPath('document', selectedDocument!.path));
-      print("Document selected: ${selectedDocument!.path}");
-    }
 
-    var response = await request.send();
-
-    print("Response Status Code: ${response.statusCode}");
-    print("Response Headers: ${response.headers}");
-
-    response.stream.bytesToString().then((body) {
-      print("Response Body: $body");
-    });
+    // Attempt request
+    var response = await sendRequest(token);
 
     if (response.statusCode == 401) {
+      print("Token expired, refreshing...");
       bool refreshed = await refreshToken();
-      print("refresh function called");
-      if (refreshed){
-        token = await SecureStorage.getAccessToken();
-        var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
-        request.headers['Authorization'] = 'Bearer $token';
+
+      if (refreshed) {
+        token = await SecureStorage.getAccessToken(); // Get the new token
+        response = await sendRequest(token); // Retry request
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Session expired. Please log in again.")));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+        return;
       }
-      else{
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Submission Failed!")));
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => LoginPage()));
-      }
-    }
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Grievance Submitted Successfully!")));
     }
 
-    else {
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Grievance Submitted Successfully!")));
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Submission Failed!")));
     }
   }
+
 
 
   @override
