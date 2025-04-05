@@ -7,7 +7,8 @@ import 'profile.dart';
 import 'AddGrievance.dart';
 import 'storage_service.dart';
 import 'config.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'logvisit.dart';
+import 'refreshtoken.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,46 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _getLocation();
     fetchDashboardData();
-    refreshToken();
   }
-
-  Future<bool> refreshToken() async {
-    String? refreshToken = await SecureStorage.getRefreshToken();
-
-    if (refreshToken == null) {
-      print("⚠️ No refresh token found.");
-
-      return false;
-    }
-
-    final response = await http.post(
-      Uri.parse("$baseURL/refresh"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"refreshToken": refreshToken}),
-    );
-
-    print("🔄 Refresh Token Request Sent.");
-    print("📥 Response Status: ${response.statusCode}");
-    print("📥 Response Body: ${response.body}");
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['newAccessToken'] != null) {
-        await SecureStorage.saveAccessToken(data['newAccessToken']);
-        // await SecureStorage.saveRefreshToken(data['refreshToken']);
-        print("✅ Tokens refreshed successfully.");
-        return true;
-      } else {
-        print("❌ Missing tokens in response.");
-      }
-    } else {
-      print("❌ Failed to refresh token. Clearing storage.");
-      await SecureStorage.clearToken();
-    }
-
-    return false;
-  }
-
 
 
   Future<void> fetchDashboardData() async {
@@ -177,19 +139,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         location = placemarks[0].locality ?? "Unknown city"; // Display city name
       });
     }
-    logDashboardVisit(user_id, location);
+    await logDashboardVisit(user_id, location);
 
   }
 
-  Future<void> logDashboardVisit(String userId, String coordinates) async {
-    final url = Uri.parse('$baseURL/visit'); // Replace with your backend URL
 
-    await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"user_id": userId, "coordinates": coordinates}),
-    );
-  }
 
   void _navigateTo(BuildContext context, Widget screen) {
     Future.delayed(Duration(milliseconds: 200), () {
