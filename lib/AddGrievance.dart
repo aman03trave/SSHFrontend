@@ -9,6 +9,7 @@ import 'storage_service.dart';
 import 'config.dart';
 // import 'logvisit.dart';
 import 'refreshtoken.dart';
+import 'customsnackbar.dart';
 
 class GrievanceScreen extends StatefulWidget {
   @override
@@ -29,6 +30,8 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   List<dynamic> categories = [];
   File? selectedImage;
   File? selectedDocument;
+  bool isSubmitting = false;
+
 
   @override
   void initState() {
@@ -112,8 +115,14 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
 
 
   Future<void> submitGrievance() async {
+    if (isSubmitting) return; // Prevent double tap
+
     String? token = await SecureStorage.getAccessToken();
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      isSubmitting = true;
+    });
 
     Future<http.StreamedResponse> sendRequest(String? token) async {
       var request = http.MultipartRequest('POST', Uri.parse('$baseURL/addgrievance'));
@@ -136,7 +145,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       return await request.send();
     }
 
-    // Attempt request
     var response = await sendRequest(token);
 
     if (response.statusCode == 401) {
@@ -144,21 +152,39 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       bool refreshed = await refreshToken();
 
       if (refreshed) {
-        token = await SecureStorage.getAccessToken(); // Get the new token
-        response = await sendRequest(token); // Retry request
+        token = await SecureStorage.getAccessToken();
+        response = await sendRequest(token);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Session expired. Please log in again.")));
+        showCustomSnackBar(context, "Session expired. Please log in again.");
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+        setState(() {
+          isSubmitting = false;
+        });
         return;
       }
     }
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Grievance Submitted Successfully!")));
+      showCustomSnackBar(context, "Grievance Submitted Successfully!");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Submission Failed!")));
+      showCustomSnackBar(context, "Submission Failed!");
     }
+
+    setState(() {
+      isSubmitting = false;
+      titleController.clear();
+      descriptionController.clear();
+      selectedImage = null;
+      selectedDocument = null;
+      selectedDistrict = null;
+      selectedBlock = null;
+      selectedSchool = null;
+      selectedCategory = null;
+      blocks = [];
+      schools = [];
+    });
   }
+
 
 
 

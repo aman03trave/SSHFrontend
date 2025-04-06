@@ -10,6 +10,7 @@ import 'config.dart';
 import 'logvisit.dart';
 import 'refreshtoken.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'complaint_status.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,8 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _getLocation();
-    fetchDashboardData();
+    fetchDashboardData().then((_) => _getLocation());
   }
 
 
@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (refreshed) {
           token = await SecureStorage.getAccessToken();
           print(token);
-          response = await http.get(
+          response = await client.get(
             Uri.parse("$baseURL/dashboard"),
             headers: {"Authorization": "Bearer $token"},
           );
@@ -89,8 +89,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        userName = jsonResponse['name'];
-        user_id = jsonResponse['user']['user_id'];
+        setState(() {
+          userName = jsonResponse['name'];
+          user_id = jsonResponse['user']['user_id'];
+        });
 
         print("Response Body: ${response.body}");
       } else {
@@ -146,10 +148,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 
 
-  void _navigateTo(BuildContext context, Widget screen) {
-    Future.delayed(Duration(milliseconds: 200), () {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
-    });
+  void _navigateTo(BuildContext context, Widget screen) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+
+    if (result == 'profile_updated') {
+      fetchDashboardData(); // 🟦 Refresh data if profile was updated
+    }
   }
 
   @override
@@ -237,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     }),
                     IconButton(icon: Icon(Icons.dashboard, color: Colors.white), onPressed: () {
                       Navigator.push(
-                          context, MaterialPageRoute(builder: (context) => DashboardScreen()));
+                          context, MaterialPageRoute(builder: (context) => Dashboard()));
                     }),
                   ],
                 ),
@@ -251,10 +258,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Navigator.push(
                           context, MaterialPageRoute(builder: (context) => DashboardScreen()));
                     }),
-                    IconButton(icon: Icon(Icons.person, color: Colors.white), onPressed: () {
-                      Navigator.push(
-                          context, MaterialPageRoute(builder: (context) => ProfileScreen()));
-                    }),
+        IconButton(
+          icon: Icon(Icons.person, color: Colors.white),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileScreen()),
+            );
+
+            if (result == 'profile_updated') {
+              fetchDashboardData();
+            }
+          },
+        ),
+
                   ],
                 ),
               ),

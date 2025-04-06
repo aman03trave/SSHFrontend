@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -5,6 +7,11 @@ import 'config.dart';
 import 'package:flutter/material.dart';
 import 'refreshtoken.dart';
 import 'storage_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(MyApp());
@@ -15,20 +22,147 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: DashboardScreen(),
+      home: Dashboard(),
     );
   }
 }
 
-class DashboardScreen extends StatefulWidget {
+class Dashboard extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+Future<bool> requestStoragePermission() async {
+  if (Platform.isAndroid) {
+    if (await Permission.storage.isGranted) return true;
+
+    if (await Permission.storage.request().isGranted) {
+      return true;
+    }
+
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      return true;
+    }
+
+    return false;
+  }
+  return true; // iOS doesn't need this
+}
+
+
+Future<void> downloadAndOpenDocument(String url, BuildContext context) async {
+  try {
+    bool permissionGranted = await requestStoragePermission();
+    if (!permissionGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Storage permission denied")));
+      return;
+    }
+
+    Directory directory = Platform.isAndroid
+        ? (await getExternalStorageDirectory())!
+        : await getApplicationDocumentsDirectory();
+
+    String fileName = url.split('/').last;
+    String filePath = "${directory.path}/$fileName";
+
+    Dio dio = Dio();
+    await dio.download(url, filePath);
+
+    OpenFile.open(filePath);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+  }
+}
+
+class GrievanceDetailPage extends StatelessWidget {
+  final Map<String, dynamic> complaint;
+
+  GrievanceDetailPage({required this.complaint});
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePath = complaint['media']?['image'];
+    final docPath = complaint['media']?['document'];
+    final imageUrl = imagePath != null && imagePath.isNotEmpty ? "$baseURL/$imagePath" : '';
+    final docUrl = docPath != null && docPath.isNotEmpty ? "$baseURL/$docPath" : '';
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Complaint Details")),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(height: 200, color: Colors.grey[300], child: Icon(Icons.broken_image)),
+                ),
+              ),
+            SizedBox(height: 16),
+            Text("Title: ${complaint["title"] ?? "N/A"}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text("Description: ${complaint["description"] ?? "N/A"}", style: TextStyle(fontSize: 16)),
+            SizedBox(height: 8),
+            Text("Status Code: ${complaint["code"] ?? "N/A"}"),
+            Text("Created At: ${complaint["created_at"] ?? "N/A"}"),
+            SizedBox(height: 16),
+
+            if (docUrl.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Document Uploaded:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.remove_red_eye),
+                    label: Text("View / Download Document"),
+                    onPressed: () => downloadAndOpenDocument(docUrl, context),
+                  ),
+                ],
+              ),
+
+
+            SizedBox(height: 16),
+            Text("Action Logs", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Divider(),
+
+            if (complaint["action_logs"] != null && complaint["action_logs"] is List)
+              ...List<Widget>.from((complaint["action_logs"] as List).map((log) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Text("- ${log.toString()}", style: TextStyle(fontSize: 14)),
+                );
+              })),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _DashboardScreenState extends State<Dashboard> {
   int selectedCategory = 0; // 0: All, 1: In Process, 2: Resolved
   Map<int, bool> expandedState = {};
   List<dynamic> grievances = [];
+
+  void launchURL(BuildContext context, String url) async {
+    final Uri uri = Uri.parse(url);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch document')),
+      );
+    }
+  }
+
 
   @override
   void initState() {
@@ -167,7 +301,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               bottom: 10,
               right: 10,
               child: ElevatedButton(
-                onPressed: () => toggleExpanded(index),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GrievanceDetailPage(complaint: complaint),
+                    ),
+                  );
+                },
+
                 child: Text("View Action"),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
               ),
@@ -181,14 +323,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text("Title: ${complaint["title"] ?? "N/A"}",
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
                         Text("Description: ${complaint["description"] ?? "N/A"}",
                             style: TextStyle(color: Colors.white)),
                         SizedBox(height: 10),
-                        Text("Action Status: ${complaint["action_code_id"] ?? "N/A"}",
+                        Text("Action Status: ${complaint["code"] ?? "N/A"}",
                             style: TextStyle(color: Colors.white)),
-                        SizedBox(height: 5),
+                        SizedBox(height: 10),
                         Text("Created At: ${complaint["created_at"] ?? "N/A"}",
                             style: TextStyle(color: Colors.white)),
+                        SizedBox(height: 10),
+
+                        if (complaint['media']?['document'] != null &&
+                            complaint['media']['document'].toString().isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Document:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              TextButton(
+                                onPressed: () {
+                                  final docPath = complaint['media']?['image'];
+                                  final docUrl = imagePath != null && imagePath.isNotEmpty
+                                      ? "$baseURL/$docPath"
+                                      : '';
+                                  //final docUrl = "$baseURL/${complaint['media']['document']}";
+
+                                  if (docUrl.isNotEmpty) {
+                                    launchURL(context, docUrl);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("No document available")),
+                                    );
+                                  }
+                                },
+                                child: Text("View Uploaded Document",
+                                    style: TextStyle(color: Colors.blueAccent)),
+                              ),
+                            ],
+                          ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
@@ -201,6 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               )
+
           ],
         ),
       ),

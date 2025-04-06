@@ -132,8 +132,8 @@ class _SignupPageState extends State<SignupPage> {
 
       if (response.statusCode == 200) {
         var responseData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Signup Successful! Welcome, ${responseData['name']}")));
+        showCustomSnackBar(context, "Signup Successful! Welcome, ${responseData['name']}");
+
 
 
     // Clear all text fields after successful signup
@@ -154,14 +154,16 @@ class _SignupPageState extends State<SignupPage> {
           isError = true;
           errorMessage = errorResponse['message'] ?? "Signup Failed!";
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+        showCustomSnackBar(context, errorMessage);
+        // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text()));
       }
     } catch (error) {
       setState(() {
         isError = true;
         errorMessage = "Network error. Please try again!";
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+      showCustomSnackBar(context, errorMessage);
+      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() {
         isLoading = false;

@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'storage_service.dart';
 import 'config.dart';
 import 'refreshtoken.dart';
+import 'customsnackbar.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -99,13 +100,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (response.statusCode == 200) {
       await fetchProfile();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Profile Updated!")),
-      );
+
+      showCustomSnackBar(context, "Profile Updated");
+      Navigator.pop(context, 'profile_updated');
+
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Update failed!")),
       );
+      showCustomSnackBar(context, "Profile Update Failed!");
     }
     setState(() => isSaving = false);
   }
