@@ -7,7 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:ssh/login.dart';
 import 'storage_service.dart';
 import 'config.dart';
-// import 'logvisit.dart';
 import 'refreshtoken.dart';
 import 'customsnackbar.dart';
 
@@ -31,7 +30,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   File? selectedImage;
   File? selectedDocument;
   bool isSubmitting = false;
-
 
   @override
   void initState() {
@@ -64,7 +62,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
         selectedSchool = null;
         schools = [];
       });
-    }else{
+    } else {
       print("Error Occurred");
     }
   }
@@ -80,11 +78,11 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
         schools = jsonDecode(response.body)['schools'];
         selectedSchool = null;
       });
-    }
-    else{
+    } else {
       print("Error Occurred");
     }
   }
+
   Future<void> fetchGrievanceCategories() async {
     final response = await http.get(Uri.parse('$baseURL/grievance_category'));
     if (response.statusCode == 200) {
@@ -112,10 +110,8 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     }
   }
 
-
-
   Future<void> submitGrievance() async {
-    if (isSubmitting) return; // Prevent double tap
+    if (isSubmitting) return;
 
     String? token = await SecureStorage.getAccessToken();
     if (!_formKey.currentState!.validate()) return;
@@ -165,7 +161,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     }
 
     if (response.statusCode == 200) {
-      showCustomSnackBar(context, "Grievance Submitted Successfully!");
+      _showGrievanceSubmittedSheet(titleController.text);
     } else {
       showCustomSnackBar(context, "Submission Failed!");
     }
@@ -185,8 +181,51 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     });
   }
 
-
-
+  void _showGrievanceSubmittedSheet(String grievanceTitle) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.grey[700]),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            Icon(Icons.check_circle, color: Colors.green[600], size: 48),
+            const SizedBox(height: 12),
+            Text(
+              'Grievance Submitted!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your grievance "$grievanceTitle" has been submitted successfully.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -246,7 +285,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
                     });
                   },
                 ),
-                SizedBox(height: 10,),
+                SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   isExpanded: true,
                   value: selectedCategory,
@@ -305,8 +344,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
             ),
           ),
         ),
-      )
-
+      ),
     );
   }
 }
