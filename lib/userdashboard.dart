@@ -11,6 +11,7 @@ import 'logvisit.dart';
 import 'refreshtoken.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'complaint_status.dart';
+import 'user_reminder.dart';
 
 void main() {
   runApp(const MyApp());
@@ -170,7 +171,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.notifications, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => UserReminder()));
+            },
           ),
         ],
       ),
