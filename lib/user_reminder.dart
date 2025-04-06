@@ -19,6 +19,7 @@ class ReminderApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const ReminderPage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
