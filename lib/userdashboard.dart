@@ -208,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Expanded(child: _buildStatusCard('10', 'Complaints', Colors.blue)),
+                Expanded(child: _buildStatusCard('10', 'Complaint', Colors.blue)),
                 SizedBox(width: 8),
                 Expanded(child: _buildStatusCard('0', 'In Process', Colors.orange)),
                 SizedBox(width: 8),
