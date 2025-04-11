@@ -1,38 +1,39 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() {
   runApp(const MaterialApp(home: NewGrievancePage()));
 }
 
-class NewGrievancePage extends StatelessWidget {
+class NewGrievancePage extends StatefulWidget {
   const NewGrievancePage({super.key});
 
-  final List<GrievanceItem> grievances = const [
-    GrievanceItem(
-      title: "No Drinking Water",
-      subtitle: "Block B, Floor 2",
-      duration: "2 hours ago",
-      status: GrievanceStatus.completed,
-    ),
-    GrievanceItem(
-      title: "Lights Not Working",
-      subtitle: "Room 204, Building C",
-      duration: "3 hours ago",
-      status: GrievanceStatus.completed,
-    ),
-    GrievanceItem(
-      title: "Window Issue",
-      subtitle: "Library Reading Room",
-      duration: "4 hours ago",
-      status: GrievanceStatus.inProgress,
-    ),
-    GrievanceItem(
-      title: "Slow Internet",
-      subtitle: "Lab 1, CS Department",
-      duration: "Just now",
-      status: GrievanceStatus.pending,
-    ),
-  ];
+  @override
+  State<NewGrievancePage> createState() => _NewGrievancePageState();
+}
+
+class _NewGrievancePageState extends State<NewGrievancePage> {
+  final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
+
+  Future<List<GrievanceItem>> fetchGrievances() async {
+    final token = await secureStorage.read(key: "accessToken");
+    final response = await http.get(
+      Uri.parse("http://192.168.29.225:3000/api/getGrievancesByDistrict"),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((item) => GrievanceItem.fromJson(item)).toList();
+    } else {
+      throw Exception("Failed to load grievances");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,22 +67,37 @@ class NewGrievancePage extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: grievances.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final item = grievances[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => GrievanceDetailPage(item: item),
-                        ),
+              child: FutureBuilder<List<GrievanceItem>>(
+                future: fetchGrievances(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No grievances found."));
+                  }
+
+                  final grievances = snapshot.data!;
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: grievances.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      final item = grievances[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GrievanceDetailPage(item: item),
+                            ),
+                          );
+                        },
+                        child: _GrievanceTile(item: item, index: index),
                       );
                     },
-                    child: _GrievanceTile(item: item, index: index),
                   );
                 },
               ),
@@ -97,16 +113,44 @@ enum GrievanceStatus { completed, inProgress, pending }
 
 class GrievanceItem {
   final String title;
-  final String subtitle;
+  final String complainantName;
+  final String blockName;
+  final String schoolName;
   final String duration;
   final GrievanceStatus status;
+  final String description;
 
-  const GrievanceItem({
+  GrievanceItem({
     required this.title,
-    required this.subtitle,
+    required this.complainantName,
+    required this.blockName,
+    required this.schoolName,
     required this.duration,
     required this.status,
+    required this.description,
   });
+
+  factory GrievanceItem.fromJson(Map<String, dynamic> json) {
+    return GrievanceItem(
+      title: json['title'] ?? '',
+      complainantName: json['name'] ?? 'Unknown',
+      blockName: json['block_name'] ?? 'Unknown Block',
+      schoolName: json['school_name'] ?? 'Unknown School',
+      duration: _formatDuration(json['created_at']),
+      status: GrievanceStatus.pending, // You can update based on your backend
+      description: json['description'] ?? '',
+    );
+  }
+
+  static String _formatDuration(String createdAt) {
+    final DateTime createdTime = DateTime.parse(createdAt).toLocal();
+    final Duration diff = DateTime.now().difference(createdTime);
+
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return '${diff.inDays} days ago';
+  }
 }
 
 class _GrievanceTile extends StatelessWidget {
@@ -118,9 +162,9 @@ class _GrievanceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Color> tileColors = [
-      const Color(0xFFE6F0FD), // blue tint
-      const Color(0xFFE0F7FA), // water tint
-      const Color(0xFFFFF8E1), // cream
+      const Color(0xFFE6F0FD),
+      const Color(0xFFE0F7FA),
+      const Color(0xFFFFF8E1),
     ];
 
     final Color backgroundColor = tileColors[index % tileColors.length];
@@ -131,27 +175,29 @@ class _GrievanceTile extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.subtitle,
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
-                ),
-              ],
-            ),
+          Text(
+            item.title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "👤 ${item.complainantName}",
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
           ),
           Text(
-            item.duration,
+            "🏫 ${item.schoolName}",
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          Text(
+            "📍 ${item.blockName}",
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "🕒 ${item.duration}",
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -191,7 +237,11 @@ class GrievanceDetailPage extends StatelessWidget {
           children: [
             Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Text("📍 Location: ${item.subtitle}", style: const TextStyle(fontSize: 16)),
+            Text("👤 Complainant: ${item.complainantName}", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 4),
+            Text("🏫 School: ${item.schoolName}", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 4),
+            Text("📍 Block: ${item.blockName}", style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
             Text("🕒 Submitted: ${item.duration}", style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
@@ -204,9 +254,9 @@ class GrievanceDetailPage extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "This is a placeholder for the grievance description. Detailed info about the issue can be shown here.",
-              style: TextStyle(fontSize: 14, color: Colors.black87),
+            Text(
+              item.description,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ],
         ),

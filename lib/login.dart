@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'storage_service.dart';
 import 'forgotpassword.dart';
 import 'config.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'Level1_dashboard.dart';
 
 void main() {
   runApp(LoginPage());
@@ -39,22 +41,22 @@ class _FirstPageState extends State<FirstPage> {
 
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // _checkLoginStatus();
   }
 
-  Future<void> _checkLoginStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
-    if (isLoggedIn) {
-      // Redirect to dashboard if already logged in
-      Future.delayed(Duration.zero, () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DashboardScreen()),
-        );
-      });
-    }
-  }
+  // Future<void> _checkLoginStatus() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
+  //   if (isLoggedIn) {
+  //     // Redirect to dashboard if already logged in
+  //     Future.delayed(Duration.zero, () {
+  //       Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(builder: (context) => DashboardScreen()),
+  //       );
+  //     });
+  //   }
+  // }
 
   void dispose() {
     emailController.dispose();
@@ -88,16 +90,33 @@ class _FirstPageState extends State<FirstPage> {
         final jsonResponse = jsonDecode(response.body);
 
         if (jsonResponse['status'] == true && jsonResponse.containsKey('accessToken')) {
-          await SecureStorage.saveAccessToken(jsonResponse['accessToken']);
-          await SecureStorage.saveRefreshToken(jsonResponse['refreshToken']);
+          final accessToken = jsonResponse['accessToken'];
+          final refreshToken = jsonResponse['refreshToken'];
+
+          await SecureStorage.saveAccessToken(accessToken);
+          await SecureStorage.saveRefreshToken(refreshToken);
+
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", true);
+
+          // Decode JWT to extract role_id
+          Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
+          String roleId = decodedToken['role_id'].toString();
+          await prefs.setString("role_id", roleId);
+
           showCustomSnackBar(context, "Signin Successful!");
+
           Future.delayed(Duration(milliseconds: 300), () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => DashboardScreen()),
-            );
+            if (roleId == "1") {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+            // } else if (roleId == "2") {
+            //   Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Level1OfficerDashboard()));
+            } else if (roleId == "3") {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
+            } else if(roleId == "4") {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GrievanceDashboard()));
+            }
+
           });
         } else {
           showCustomSnackBar(context, "Invalid credentials or response format.");
@@ -111,6 +130,7 @@ class _FirstPageState extends State<FirstPage> {
       setState(() => isLoggingIn = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
