@@ -41,22 +41,34 @@ class _FirstPageState extends State<FirstPage> {
 
   void initState() {
     super.initState();
-    // _checkLoginStatus();
+    _checkLoginStatus();
   }
 
-  // Future<void> _checkLoginStatus() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
-  //   if (isLoggedIn) {
-  //     // Redirect to dashboard if already logged in
-  //     Future.delayed(Duration.zero, () {
-  //       Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => DashboardScreen()),
-  //       );
-  //     });
-  //   }
-  // }
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
+    String role_id = prefs.getString("role_id") ?? "";
+    if (isLoggedIn ) {
+      // Redirect to dashboard if already logged in
+      Future.delayed(Duration.zero, () {
+        if (role_id == "1") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+          } else if (role_id == "3") {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => DashboardScreen()),
+            );}
+          else if(role_id == "4")
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+        );
+      });
+    }
+  }
 
   void dispose() {
     emailController.dispose();

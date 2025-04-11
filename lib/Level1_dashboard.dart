@@ -1,8 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'Level1_newgrievance.dart';
 import 'AssignToLevel2Page.dart';
 import 'profile.dart';
 import 'ATRverify.dart';
+import 'storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'config.dart';
+import 'package:http/http.dart';
+import 'refreshtoken.dart';
+import 'Level1_DisplayAssignedGrievance.dart';
 void main() {
   runApp(const GrievanceApp());
 }
@@ -34,6 +43,8 @@ class GrievanceDashboard extends StatefulWidget {
 
 class _GrievanceDashboardState extends State<GrievanceDashboard> {
   int _currentIndex = 0;
+  String userName = "";
+  String user_id = "";
 
   final List<Widget> _pages = [
     HomePage(),
@@ -41,6 +52,8 @@ class _GrievanceDashboardState extends State<GrievanceDashboard> {
     DummyPage("History"),
     ProfileScreen(),
   ];
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +82,69 @@ class _GrievanceDashboardState extends State<GrievanceDashboard> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String userName = "";
+  String user_id = "";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDashboardData();
+  }
+
+  Future<void> fetchDashboardData() async {
+    String? token = await SecureStorage.getAccessToken();
+
+    final url = Uri.parse("$baseURL/dashboard");
+    http.Client client = http.Client();
+
+    try {
+      var response = await client.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 401) {
+        bool refreshed = await refreshToken();
+        if (refreshed) {
+          token = await SecureStorage.getAccessToken();
+          response = await client.get(
+            Uri.parse("$baseURL/dashboard"),
+            headers: {"Authorization": "Bearer $token"},
+          );
+        } else {
+          await SecureStorage.clearToken();
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool("isLoggedIn", false);
+        }
+      }
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        setState(() {
+          userName = jsonResponse['name'];
+          user_id = jsonResponse['user']['user_id'];
+        });
+      } else {
+        print("Failed to fetch dashboard data");
+      }
+    } catch (e) {
+      print("Error: $e");
+    } finally {
+      client.close();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,13 +170,11 @@ class HomePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          const Text(
-            'Hello, Gagan 👋',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          Text(
+            'Hello, $userName',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
-
-          // Search Bar
           TextField(
             decoration: InputDecoration(
               hintText: 'Search by title, date or status...',
@@ -193,7 +265,7 @@ class HomePage extends StatelessWidget {
                 label: "Assigned",
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const DummyPage("Assigned")),
+                  MaterialPageRoute(builder: (context) => AssignedGrievancePage()),
                 ),
               ),
               _ServiceCard(
@@ -212,6 +284,7 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+
 
 // Trending Card
 class _TrendingCard extends StatelessWidget {

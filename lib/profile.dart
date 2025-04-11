@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'storage_service.dart';
 import 'config.dart';
 import 'refreshtoken.dart';
 import 'customsnackbar.dart';
+import 'login.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -123,6 +125,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> logout(BuildContext context) async {
+    String? token = await SecureStorage.getAccessToken();
+    final response = await http.post(
+      Uri.parse("$baseURL/logout"),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool("isLoggedIn", false);
+
+      await SecureStorage.clearToken();
+      showCustomSnackBar(context, "Logout Successful!");
+      await Future.delayed(Duration(milliseconds: 1500));
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => LoginPage())
+      );
+      // or your login route
+    } else {
+      showCustomSnackBar(context, "Logout failed!");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,6 +155,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text("Edit Profile"),
         centerTitle: true,
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            tooltip: "Logout",
+            onPressed: () => logout(context),
+          ),
+        ],
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),

@@ -6,49 +6,48 @@ import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
 
 void main() {
-  runApp(const MaterialApp(home: NewGrievancePage()));
+  runApp(const MaterialApp(home: AssignedGrievancePage()));
 }
 
-class NewGrievancePage extends StatefulWidget {
-  const NewGrievancePage({super.key});
+class AssignedGrievancePage extends StatefulWidget {
+  const AssignedGrievancePage({super.key});
 
   @override
-  State<NewGrievancePage> createState() => _NewGrievancePageState();
+  State<AssignedGrievancePage> createState() => _AssignedGrievancePageState();
 }
 
-class _NewGrievancePageState extends State<NewGrievancePage> {
+class _AssignedGrievancePageState extends State<AssignedGrievancePage> {
   final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
 
-  Future<List<GrievanceItem>> fetchGrievances() async {
+  Future<List<GrievanceItem>> fetchAssignedGrievances() async {
     var token = await secureStorage.read(key: "accessToken");
     var response = await http.get(
-      Uri.parse("$baseURL/getGrievancesByDistrict"),
+      Uri.parse("$baseURL/getAssignedGrievance"),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
 
-    if(response.statusCode == 401){
+    if (response.statusCode == 401) {
       bool refreshed = await refreshToken();
-      if(refreshed){
+      if (refreshed) {
         token = await secureStorage.read(key: "accessToken");
         response = await http.get(
-          Uri.parse("$baseURL/getGrievancesByDistrict"),
+          Uri.parse("$baseURL/getAssignedGrievance"),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
       }
-
     }
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => GrievanceItem.fromJson(item)).toList();
     } else {
-      throw Exception("Failed to load grievances");
+      throw Exception("Failed to load assigned grievances");
     }
   }
 
@@ -57,14 +56,14 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FC),
       appBar: AppBar(
-        title: const Text("New Grievances"),
+        title: const Text("Assigned Grievances"),
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         )
             : null,
-        backgroundColor: const Color(0xFF4285F4),
+        backgroundColor: const Color(0xFF34A853),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -73,26 +72,21 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
           children: [
             const Padding(
               padding: EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Latest grievances submitted by users.",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
+              child: Text(
+                "Grievances assigned to you for further action.",
+                style: TextStyle(color: Colors.grey),
               ),
             ),
             Expanded(
               child: FutureBuilder<List<GrievanceItem>>(
-                future: fetchGrievances(),
+                future: fetchAssignedGrievances(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
                     return Center(child: Text("Error: ${snapshot.error}"));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No grievances found."));
+                    return const Center(child: Text("No assigned grievances found."));
                   }
 
                   final grievances = snapshot.data!;
@@ -108,11 +102,11 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GrievanceDetailPage(item: item),
+                              builder: (_) => AssignedGrievanceDetailPage(item: item),
                             ),
                           );
                         },
-                        child: _GrievanceTile(item: item, index: index),
+                        child: _AssignedGrievanceTile(item: item, index: index),
                       );
                     },
                   );
@@ -126,55 +120,34 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
   }
 }
 
-enum GrievanceStatus { completed, inProgress, pending }
-
 class GrievanceItem {
   final String title;
-  final String complainantName;
-  final String blockName;
-  final String schoolName;
-  final String duration;
-  final GrievanceStatus status;
   final String description;
+  final String assignedToName;
+  final DateTime assignedAt;
 
   GrievanceItem({
     required this.title,
-    required this.complainantName,
-    required this.blockName,
-    required this.schoolName,
-    required this.duration,
-    required this.status,
     required this.description,
+    required this.assignedToName,
+    required this.assignedAt,
   });
 
   factory GrievanceItem.fromJson(Map<String, dynamic> json) {
     return GrievanceItem(
       title: json['title'] ?? '',
-      complainantName: json['name'] ?? 'Unknown',
-      blockName: json['block_name'] ?? 'Unknown Block',
-      schoolName: json['school_name'] ?? 'Unknown School',
-      duration: _formatDuration(json['created_at']),
-      status: GrievanceStatus.pending, // You can update based on your backend
       description: json['description'] ?? '',
+      assignedToName: json['assigned_to_name'] ?? '',
+      assignedAt: DateTime.parse(json['assigned_at']),
     );
-  }
-
-  static String _formatDuration(String createdAt) {
-    final DateTime createdTime = DateTime.parse(createdAt).toLocal();
-    final Duration diff = DateTime.now().difference(createdTime);
-
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
-    if (diff.inHours < 24) return '${diff.inHours} hours ago';
-    return '${diff.inDays} days ago';
   }
 }
 
-class _GrievanceTile extends StatelessWidget {
+class _AssignedGrievanceTile extends StatelessWidget {
   final GrievanceItem item;
   final int index;
 
-  const _GrievanceTile({required this.item, required this.index});
+  const _AssignedGrievanceTile({required this.item, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -201,21 +174,13 @@ class _GrievanceTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            "👤 ${item.complainantName}",
+            "👨‍💼 Assigned to: ${item.assignedToName}",
             style: const TextStyle(fontSize: 13, color: Colors.black87),
           ),
+          const SizedBox(height: 4),
           Text(
-            "🏫 ${item.schoolName}",
+            "🗓️ Assigned at: ${item.assignedAt.toLocal().toString().split('.').first}",
             style: const TextStyle(fontSize: 13, color: Colors.black54),
-          ),
-          Text(
-            "📍 ${item.blockName}",
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "🕒 ${item.duration}",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -223,27 +188,17 @@ class _GrievanceTile extends StatelessWidget {
   }
 }
 
-class GrievanceDetailPage extends StatelessWidget {
+
+class AssignedGrievanceDetailPage extends StatelessWidget {
   final GrievanceItem item;
 
-  const GrievanceDetailPage({super.key, required this.item});
-
-  String getStatusText(GrievanceStatus status) {
-    switch (status) {
-      case GrievanceStatus.completed:
-        return "Completed";
-      case GrievanceStatus.inProgress:
-        return "In Progress";
-      case GrievanceStatus.pending:
-        return "Pending";
-    }
-  }
+  const AssignedGrievanceDetailPage({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Grievance Details"),
+        title: const Text("Assigned Grievance"),
         backgroundColor: const Color(0xFF4285F4),
         foregroundColor: Colors.white,
       ),
@@ -254,15 +209,9 @@ class GrievanceDetailPage extends StatelessWidget {
           children: [
             Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Text("👤 Complainant: ${item.complainantName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 4),
-            Text("🏫 School: ${item.schoolName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 4),
-            Text("📍 Block: ${item.blockName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            Text("🕒 Submitted: ${item.duration}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            Text("📌 Status: ${getStatusText(item.status)}", style: const TextStyle(fontSize: 16)),
+            Text("👨‍💼 Assigned To: ${item.assignedToName}", style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 6),
+            Text("🗓️ Assigned At: ${item.assignedAt.toLocal().toString().split('.').first}", style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 20),
@@ -281,3 +230,4 @@ class GrievanceDetailPage extends StatelessWidget {
     );
   }
 }
+
