@@ -11,6 +11,7 @@ import 'forgotpassword.dart';
 import 'config.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
 
 void main() {
   runApp(LoginPage());
@@ -61,11 +62,16 @@ class _FirstPageState extends State<FirstPage> {
               context,
               MaterialPageRoute(builder: (context) => DashboardScreen()),
             );}
-          else if(role_id == "4")
+          else if(role_id == "4"){
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => GrievanceDashboard()),
-        );
+        );}
+          else if(role_id == "5"){
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Level2Dashboard()),
+        );}
       });
     }
   }
@@ -127,6 +133,8 @@ class _FirstPageState extends State<FirstPage> {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
             } else if(roleId == "4") {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GrievanceDashboard()));
+            } else if(roleId == "5"){
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Level2Dashboard()));
             }
 
           });
