@@ -2,17 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'Level1_newgrievance.dart';
-import 'AssignToLevel2Page.dart';
 import 'profile.dart';
-import 'ATRverify.dart';
 import 'storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
-import 'package:http/http.dart';
 import 'refreshtoken.dart';
-import 'Level1_DisplayAssignedGrievance.dart';
 import 'Level2_NewAssignedGrievance.dart';
+import 'Level2_AcceptedGrievance.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -49,7 +45,6 @@ class _Level2DashboardState extends State<Level2Dashboard> {
 
   final List<Widget> _pages = [
     HomePage(),
-    DummyPage("Feed"),
     DummyPage("History"),
     ProfileScreen(),
   ];
@@ -76,7 +71,9 @@ class _Level2DashboardState extends State<Level2Dashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           // BottomNavigationBarItem(icon: Icon(Icons.feed), label: "Feed"),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile",
+
+          ),
         ],
       ),
     );
@@ -242,7 +239,7 @@ class _HomePageState extends State<HomePage> {
                 label: "Accepted",
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => NewGrievancePage()),
+                  MaterialPageRoute(builder: (context) => Level2_AcceptedGrievancePage()),
                 ),
               ),
               _ServiceCard(
