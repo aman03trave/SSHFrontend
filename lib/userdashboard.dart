@@ -12,6 +12,7 @@ import 'refreshtoken.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'complaint_status.dart';
 import 'user_reminder.dart';
+import 'getGrievanceById.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String user_id = "";
   String? pos;
   bool isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -160,6 +162,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _fetchGrievanceById(String grievanceId) async {
+    final token = await SecureStorage.getAccessToken();
+    final url = Uri.parse('$baseURL/grievance_id?grievance_id=$grievanceId'); // ✅ send in query
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final grievanceData = jsonDecode(response.body);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GetGrievanceById(grievanceData: grievanceData),
+        ),
+      );
+    } else {
+      final error = jsonDecode(response.body);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(error['message'] ?? 'Failed to fetch grievance.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,9 +233,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: 'Search Grievance ID',
                 prefixIcon: Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.arrow_forward),
+                  onPressed: () {
+                    final id = _searchController.text.trim();
+                    if (id.isNotEmpty) {
+                      _fetchGrievanceById(id);
+                    }
+                  },
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 filled: true,
                 fillColor: Colors.white,
