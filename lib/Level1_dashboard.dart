@@ -238,15 +238,15 @@ class _HomePageState extends State<HomePage> {
               ),
               _ServiceCard(
                 icon: Icons.assignment,
-                label: "Assign to Level 2",
+                label: "Assign Grievance",
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AssignToLevel2Page()),
                 ),
               ),
               _ServiceCard(
-                icon: Icons.block,
-                label: "Rejected",
+                icon: Icons.assignment_return,
+                label: "Returned",
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const DummyPage("Rejected")),

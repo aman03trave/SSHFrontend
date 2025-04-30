@@ -126,16 +126,31 @@ class GrievanceDetailPage extends StatelessWidget {
 
 
             SizedBox(height: 16),
-            Text("Action Logs", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Action Log", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Divider(),
-
-            if (complaint["action_logs"] != null && complaint["action_logs"] is List)
-              ...List<Widget>.from((complaint["action_logs"] as List).map((log) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: Text("- ${log.toString()}", style: TextStyle(fontSize: 14)),
-                );
-              })),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.blueAccent, size: 20),
+                  ],
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(complaint["code"] ?? "No Action", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 2),
+                      Text("Action ID: ${complaint["action_id"] ?? "N/A"}", style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                      Text("On: ${complaint["action_timestamp"] ?? "Unknown time"}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      SizedBox(height: 10),
+                    ],
+                  ),
+                )
+              ],
+            ),
           ],
         ),
       ),

@@ -58,7 +58,7 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FC),
       appBar: AppBar(
-        title: const Text("New Grievances"),
+        title: const Text("Accepted Grievances"),
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
