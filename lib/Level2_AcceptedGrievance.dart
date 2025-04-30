@@ -6,22 +6,22 @@ import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
 
 void main() {
-  runApp(const MaterialApp(home: Level2_NewGrievancePage()));
+  runApp(const MaterialApp(home: Level2_AcceptedGrievancePage()));
 }
 
-class Level2_NewGrievancePage extends StatefulWidget {
-  const Level2_NewGrievancePage({super.key});
+class Level2_AcceptedGrievancePage extends StatefulWidget {
+  const Level2_AcceptedGrievancePage({super.key});
 
   @override
-  State<Level2_NewGrievancePage> createState() => _NewGrievancePageState();
+  State<Level2_AcceptedGrievancePage> createState() => _AcceptedGrievancePageState();
 }
 
-class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
+class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
 
   Future<List<GrievanceItem>> fetchGrievances() async {
     var token = await SecureStorage.getAccessToken();
     var response = await http.get(
-      Uri.parse("$baseURL/getAssignedToMe"),
+      Uri.parse("$baseURL/getAcceptedGrievance"),
       headers: {
 
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
       if (refreshed) {
         token = await SecureStorage.getAccessToken();
         response = await http.get(
-          Uri.parse("$baseURL/getAssignedToMe"),
+          Uri.parse("$baseURL/getAcceptedGrievance"),
           headers: {
 
             'Content-Type': 'application/json',
