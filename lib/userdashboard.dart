@@ -42,12 +42,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? pos;
   bool isLoading = true;
   final TextEditingController _searchController = TextEditingController();
+  int registered = 0;
+  int inProcess = 0;
+  int completed = 0;
 
   @override
   void initState() {
     super.initState();
     fetchDashboardData().then((_) => _getLocation());
+    fetchGrievanceStats();
   }
+
+  Future<void> fetchGrievanceStats() async {
+    String? token = await SecureStorage.getAccessToken();
+    final url = Uri.parse("$baseURL/grievanceStats");
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final stats = jsonDecode(response.body);
+        setState(() {
+          registered = stats['Registered'] ?? 0;
+          inProcess = stats['InProcess'] ?? 0;
+          completed = stats['Completed'] ?? 0;
+        });
+      } else {
+        print("Failed to fetch grievance stats");
+      }
+    } catch (e) {
+      print("Error fetching grievance stats: $e");
+    }
+  }
+
 
 
   Future<void> fetchDashboardData() async {
@@ -252,16 +285,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Expanded(child: _buildStatusCard('10', 'Complaint', Colors.blue)),
+                Expanded(child: _buildStatusCard('$registered', 'Complaint', Colors.blue)),
                 SizedBox(width: 8),
-                Expanded(child: _buildStatusCard('0', 'In Process', Colors.orange)),
+                Expanded(child: _buildStatusCard('$inProcess', 'In Process', Colors.orange)),
                 SizedBox(width: 8),
-                Expanded(child: _buildStatusCard('0', 'Resolved', Colors.green)),
+                Expanded(child: _buildStatusCard('$completed', 'Resolved', Colors.green)),
               ],
             ),
+
             const SizedBox(height: 16),
             Expanded(
               child: ListView(
@@ -426,17 +461,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ),
-          // Positioned(
-          //   bottom: 10,
-          //   right: 10,
-          //   child: Row(
-          //     children: [
-          //       Icon(Icons.thumb_up, color: Colors.white, size: 20),
-          //       SizedBox(width: 5),
-          //       Text(votes, style: TextStyle(color: Colors.white)),
-          //     ],
-          //   ),
-          // ),
         ],
       ),
     );
