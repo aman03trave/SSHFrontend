@@ -42,12 +42,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? pos;
   bool isLoading = true;
   final TextEditingController _searchController = TextEditingController();
+  int notificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     fetchDashboardData().then((_) => _getLocation());
+    fetchNotificationCount();
   }
+
+  Future<void> fetchNotificationCount() async {
+    final token = await SecureStorage.getAccessToken();
+    final response = await http.get(
+      Uri.parse("$baseURL/countNotifcation"),
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": "Bearer $token"
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        notificationCount = data['count'];
+      });
+    } else {
+      print("Failed to fetch notification count");
+    }
+  }
+
 
 
   Future<void> fetchDashboardData() async {
@@ -206,12 +229,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         leading: Icon(Icons.menu, color: Colors.black),
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.black),
-            onPressed: () {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => UserReminder()));
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(Icons.notifications, color: Colors.black),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => UserReminder()),
+                  );
+                },
+              ),
+              if (notificationCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '$notificationCount',
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
           ),
+
         ],
       ),
       body: Padding(
