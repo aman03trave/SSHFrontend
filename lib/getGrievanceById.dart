@@ -22,6 +22,7 @@ class GetGrievanceById extends StatelessWidget {
       return path?.replaceAll('\\', '/') ?? '';
     }
 
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grievance Details'),
@@ -40,16 +41,7 @@ class GetGrievanceById extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.report_problem, size: 28, color: Colors.blue),
-                      SizedBox(width: 10),
-                      Text(
-                        'Grievance Information',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+
                   const SizedBox(height: 20),
                   _buildSection(label: 'Title', value: title, icon: Icons.title),
                   const Divider(height: 32, color: Colors.grey),

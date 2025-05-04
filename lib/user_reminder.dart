@@ -6,6 +6,8 @@ import 'config.dart';
 import 'storage_service.dart';
 import 'refreshtoken.dart';
 import 'userdashboard.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
 
 void main() {
   runApp(const UserReminder());
@@ -17,7 +19,7 @@ class UserReminder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reminders',
+      title: 'Notifications',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF5F9FF),
@@ -52,7 +54,7 @@ class _ReminderPageState extends State<ReminderPage> {
       String? token = await SecureStorage.getAccessToken();
 
       var response = await http.get(
-        Uri.parse('$baseURL/getReminder'),
+        Uri.parse('$baseURL/checkReminder'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'
@@ -83,6 +85,7 @@ class _ReminderPageState extends State<ReminderPage> {
               item['can_send_reminder'] == false)) // ✅ SKIP invalid reminder eligibility
               .map<Map<String, dynamic>>((item) {
             final title = item['title'] ?? '';
+            final timestamp = item['timestamp'] ?? '';
             final grievanceId = item['grievance_id'] ?? '';
             final notificationType = item['notification_type'] ?? '';
             final canSend = item['can_send_reminder'] ?? false;
@@ -94,13 +97,14 @@ class _ReminderPageState extends State<ReminderPage> {
             } else if (notificationType == 'Reminder Eligibility') {
               messages.add('You are now eligible to send a reminder for "$title".');
             } else if (notificationType == 'Reminder Sent') {
-              messages.add('You have already sent a reminder for "$title".');
+              messages.add('You have sent a reminder.');
             } else {
               messages.add('Update on "$title": $notificationType');
             }
 
             return {
               'title': title,
+              'timestamp': timestamp,
               'grievance_id': grievanceId,
               'messages': messages,
               'showReminderSection': canSend,
@@ -139,8 +143,8 @@ class _ReminderPageState extends State<ReminderPage> {
       if (response.statusCode == 200) {
         setState(() {
           final grievance = grievanceList.firstWhere((g) => g['grievance_id'] == grievanceId);
-          grievance['messages'].add('You have already sent a reminder for "${grievance['title']}".');
-          grievance['reminderStatus'] = 'Reminder already sent';
+          grievance['messages'].add('You have sent a reminder for "${grievance['title']}".');
+          grievance['reminderStatus'] = 'Reminder sent';
           grievance['canSendReminder'] = false;
         });
 
@@ -206,9 +210,23 @@ class _ReminderPageState extends State<ReminderPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    String formatTimeDifference(DateTime time) {
+      final now = DateTime.now();
+      final diff = now.difference(time);
+
+      if (diff.inSeconds < 60) return '${diff.inSeconds}s';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+      if (diff.inHours < 24) return '${diff.inHours}h';
+      if (diff.inDays < 7) return '${diff.inDays}d';
+      if (diff.inDays < 365) return '${(diff.inDays / 7).floor()}w';
+      return '${(diff.inDays / 365).floor()}y';
+    }
+
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Pending Reminders"),
+        title: const Text("Notifications"),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         leading: IconButton(
@@ -230,41 +248,83 @@ class _ReminderPageState extends State<ReminderPage> {
         itemBuilder: (context, index) {
           final grievance = grievanceList[index];
           return Card(
-            margin: const EdgeInsets.all(10),
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: const Color(0xFFEAF3FF),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Grievance Title
-                  Text(
-                    grievance['title'],
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                  // Title and timestamp
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${grievance['title']} (${grievance['grievance_id']})',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        // timeago.format(DateTime.parse(grievance['timestamp'])),
+                          formatTimeDifference(DateTime.parse(grievance['timestamp'])),
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  // Show each message under the grievance
+                  const SizedBox(height: 10),
+
+                  // Messages
                   ...grievance['messages'].map<Widget>((msg) => Padding(
                     padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text('• $msg', style: const TextStyle(color: Colors.black87)),
+                    child: Text('$msg', style: const TextStyle(color: Colors.black87, fontSize: 12)),
                   )),
-                  // Show reminder section if eligible
+
+                  // Reminder status
                   if (grievance['showReminderSection']) ...[
+                    // const SizedBox(height: 10),
+                    // Container(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    //   decoration: BoxDecoration(
+                    //     color: grievance['canSendReminder'] ? Colors.blue[100] : Colors.grey[300],
+                    //     borderRadius: BorderRadius.circular(20),
+                    //   ),
+                    //   child: Text(
+                    //     grievance['reminderStatus'],
+                    //     style: TextStyle(
+                    //       color: grievance['canSendReminder'] ? Colors.blue[800] : Colors.black54,
+                    //       fontWeight: FontWeight.w500,
+                    //       fontSize: 8,
+                    //     ),
+                    //   ),
+                    // ),
                     const SizedBox(height: 10),
-                    Text(grievance['reminderStatus'],
-                        style: const TextStyle(color: Colors.blueAccent)),
+
                     if (grievance['canSendReminder'])
-                      ElevatedButton(
-                        onPressed: () => sendReminder(grievance['grievance_id']),
-                        child: const Text('Send Reminder'),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () => sendReminder(grievance['grievance_id']),
+                          child: const Text('Send Reminder',
+                              style: TextStyle(color: Colors.white)),
+                        ),
                       ),
                   ]
                 ],
               ),
             ),
           );
+
         },
       ),
     );

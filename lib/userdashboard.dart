@@ -10,7 +10,7 @@ import 'config.dart';
 import 'logvisit.dart';
 import 'refreshtoken.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'complaint_status.dart';
+import 'user_complaint_status.dart';
 import 'user_reminder.dart';
 import 'getGrievanceById.dart';
 
@@ -71,7 +71,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     } else {
       print("Failed to fetch notification count");
-    fetchGrievanceStats();
+      fetchGrievanceStats();
+    }
   }
 
   Future<void> fetchGrievanceStats() async {

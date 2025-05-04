@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'storage_service.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
@@ -17,13 +20,11 @@ class Level2_AcceptedGrievancePage extends StatefulWidget {
 }
 
 class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
-
   Future<List<GrievanceItem>> fetchGrievances() async {
     var token = await SecureStorage.getAccessToken();
     var response = await http.get(
       Uri.parse("$baseURL/getAcceptedGrievance"),
       headers: {
-
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token'
       },
@@ -36,7 +37,6 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
         response = await http.get(
           Uri.parse("$baseURL/getAcceptedGrievance"),
           headers: {
-
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token'
           },
@@ -45,7 +45,6 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
     }
 
     if (response.statusCode == 200) {
-      print("Hellow");
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => GrievanceItem.fromJson(item)).toList();
     } else {
@@ -74,14 +73,9 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
           children: [
             const Padding(
               padding: EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Latest grievances submitted by users.",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
+              child: Text(
+                "Latest grievances submitted by users.",
+                style: TextStyle(color: Colors.grey),
               ),
             ),
             Expanded(
@@ -126,8 +120,6 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
     );
   }
 }
-
-enum GrievanceStatus { completed, inProgress, pending }
 
 class GrievanceItem {
   final String title;
@@ -177,7 +169,6 @@ class GrievanceItem {
   }
 }
 
-
 class _GrievanceTile extends StatelessWidget {
   final GrievanceItem item;
   final int index;
@@ -210,51 +201,61 @@ class _GrievanceTile extends StatelessWidget {
           const SizedBox(height: 6),
           Text(item.description),
           const SizedBox(height: 6),
-          Text(
-            "👤 ${item.assigned_by}",
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
-          ),
+          Text("👤 ${item.assigned_by}", style: const TextStyle(fontSize: 13)),
           const SizedBox(height: 6),
-          Text(
-            "🕒 ${item.assigned_at}",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          Text("🕒 ${item.assigned_at}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
   }
 }
 
-class GrievanceDetailPage extends StatelessWidget {
+class GrievanceDetailPage extends StatefulWidget {
   final GrievanceItem item;
 
   const GrievanceDetailPage({super.key, required this.item});
 
-  Future<void> postGrievanceAction(String grievanceId, int actionCodeId) async {
-    var token = await SecureStorage.getAccessToken();
-    var response = await http.post(
-      Uri.parse("$baseURL/addAction"),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'grievance_id': grievanceId,
-        'action_code_id': actionCodeId,
-      }),
-    );
+  @override
+  State<GrievanceDetailPage> createState() => _GrievanceDetailPageState();
+}
 
-    if (response.statusCode == 200) {
-      print("Action submitted successfully.");
-    } else {
-      print("Failed to submit action: ${response.body}");
-      throw Exception("Failed to submit action.");
+class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
+  File? _atrFile;
+
+  Future<void> pickATRDocument() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _atrFile = File(result.files.single.path!);
+      });
     }
   }
 
+  Future<void> uploadATR(String grievanceId) async {
+    if (_atrFile == null) return;
+
+    var token = await SecureStorage.getAccessToken();
+    var request = http.MultipartRequest('POST', Uri.parse("$baseURL/uploadATR"));
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('atr', _atrFile!.path));
+    request.fields['grievance_id'] = grievanceId;
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ATR uploaded successfully")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to upload ATR")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Grievance Details"),
@@ -267,74 +268,38 @@ class GrievanceDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.title,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(item.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(item.description),
               const SizedBox(height: 12),
-              Text("Description: ${item.description}"),
-              const SizedBox(height: 8),
-              Text("👤 Assigned By: ${item.assigned_by}",
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text("🕒 Assigned: ${item.assigned_at}",
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 20),
+              Text("Assigned by: ${item.assigned_by}"),
+              Text("Assigned at: ${item.assigned_at}"),
               if (item.imageUrl != null) ...[
-                const Text("Attached Image:",
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 10),
-                Image.network(item.imageUrl!, height: 200),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                Text("Image:", style: TextStyle(fontWeight: FontWeight.bold)),
+                Image.network(item.imageUrl!),
               ],
               if (item.documentUrl != null) ...[
-                const Text("Attached Document:",
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 10),
-                Image.network(item.documentUrl!, height: 200),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                Text("Document:", style: TextStyle(fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () => launchUrl(Uri.parse(item.documentUrl!)),
+                  child: const Text("View Document"),
+                ),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.check_circle_outline),
-                    onPressed: () async {
-                      try {
-                        await postGrievanceAction(item.grievance_id, 9); // Accepted
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Grievance Accepted")),
-                        );
-                        Navigator.pop(context);
-                      } catch (_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Failed to accept grievance")),
-                        );
-                      }
-                    },
-                    label: const Text("Accept"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.cancel_outlined),
-                    onPressed: () async {
-                      try {
-                        await postGrievanceAction(item.grievance_id, 8); // Rejected
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Grievance Rejected")),
-                        );
-                        Navigator.pop(context);
-                      } catch (_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Failed to reject grievance")),
-                        );
-                      }
-                    },
-                    label: const Text("Reject"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  ),
-                ],
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: pickATRDocument,
+                icon: const Icon(Icons.attach_file),
+                label: const Text("Pick ATR Document"),
               ),
-
-              const SizedBox(height: 20),
+              if (_atrFile != null) Text("Selected: ${_atrFile!.path.split('/').last}"),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => uploadATR(item.grievance_id),
+                icon: const Icon(Icons.upload_file),
+                label: const Text("Upload ATR"),
+              ),
             ],
           ),
         ),
@@ -342,4 +307,3 @@ class GrievanceDetailPage extends StatelessWidget {
     );
   }
 }
-
