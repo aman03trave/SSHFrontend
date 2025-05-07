@@ -12,6 +12,7 @@ import 'config.dart';
 import 'package:http/http.dart';
 import 'refreshtoken.dart';
 import 'Level1_DisplayAssignedGrievance.dart';
+import 'L1officer_notifications.dart';
 void main() {
   runApp(const GrievanceApp());
 }
@@ -161,7 +162,9 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
+            },
             color: Colors.black,
           ),
           const SizedBox(width: 8),

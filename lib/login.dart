@@ -126,15 +126,15 @@ class _FirstPageState extends State<FirstPage> {
 
           Future.delayed(Duration(milliseconds: 300), () {
             if (roleId == "1") {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
             // } else if (roleId == "2") {
             //   Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Level1OfficerDashboard()));
             } else if (roleId == "3") {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
             } else if(roleId == "4") {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GrievanceDashboard()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => GrievanceDashboard()));
             } else if(roleId == "5"){
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Level2Dashboard()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Level2Dashboard()));
             }
 
           });

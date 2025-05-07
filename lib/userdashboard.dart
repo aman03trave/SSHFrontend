@@ -52,12 +52,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     fetchDashboardData().then((_) => _getLocation());
     fetchNotificationCount();
+    fetchGrievanceStats();
   }
 
   Future<void> fetchNotificationCount() async {
     final token = await SecureStorage.getAccessToken();
     final response = await http.get(
-      Uri.parse("$baseURL/countNotifcation"),
+      Uri.parse("$baseURL/countNotification"),
       headers: {
         'Content-Type': 'application/json',
         "Authorization": "Bearer $token"
@@ -274,22 +275,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               if (notificationCount > 0)
                 Positioned(
-                  right: 6,
-                  top: 6,
+                  right: 3,
+                  top: 0,
                   child: Container(
                     padding: EdgeInsets.all(5),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      '$notificationCount',
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    constraints: BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$notificationCount',
+                        style: TextStyle(
+                          color: Colors.white, // ✅ contrast color
+                          fontSize: 12,         // ✅ readable size
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
+
 
         ],
       ),

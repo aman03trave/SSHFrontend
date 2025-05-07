@@ -232,26 +232,49 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
   }
 
   Future<void> uploadATR(String grievanceId) async {
-    if (_atrFile == null) return;
+    if (_atrFile == null) {
+      print("ATR file not selected.");
+      return;
+    }
 
-    var token = await SecureStorage.getAccessToken();
-    var request = http.MultipartRequest('POST', Uri.parse("$baseURL/uploadATR"));
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath('atr', _atrFile!.path));
-    request.fields['grievance_id'] = grievanceId;
-
-    var response = await request.send();
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ATR uploaded successfully")),
+    try {
+      var token = await SecureStorage.getAccessToken();
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$baseURL/uploadATR"),
       );
-    } else {
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add file
+      request.files.add(await http.MultipartFile.fromPath('atr', _atrFile!.path));
+
+      // Add fields
+      request.fields['grievance_id'] = grievanceId;
+      // request.fields['atr_text'] = atrText; // ✔️ Send atr_text
+
+      var response = await request.send();
+
+      // Parse and log the response
+      final responseData = await http.Response.fromStream(response);
+      print("Response: ${responseData.statusCode} - ${responseData.body}");
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ATR uploaded successfully")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed: ${responseData.body}")),
+        );
+      }
+    } catch (e) {
+      print("Upload failed: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to upload ATR")),
+        const SnackBar(content: Text("Error uploading ATR")),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
