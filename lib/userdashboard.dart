@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'profile.dart';
 import 'AddGrievance.dart';
@@ -25,6 +26,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1B4F72),
+        scaffoldBackgroundColor: const Color(0xFFF2F4F7),
+        textTheme: GoogleFonts.poppinsTextTheme(),
+      ),
       home: DashboardScreen(),
     );
   }
@@ -39,8 +45,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String location = "Fetching location...";
   String userName = "";
   String user_id = "";
-  String? pos;
-  bool isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   int notificationCount = 0;
   int registered = 0;
@@ -71,7 +75,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         notificationCount = data['count'];
       });
     } else {
-      print("Failed to fetch notification count");
       fetchGrievanceStats();
     }
   }
@@ -96,21 +99,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           inProcess = stats['InProcess'] ?? 0;
           completed = stats['Completed'] ?? 0;
         });
-      } else {
-        print("Failed to fetch grievance stats");
       }
-    } catch (e) {
-      print("Error fetching grievance stats: $e");
-    }
+    } catch (_) {}
   }
-
-
 
   Future<void> fetchDashboardData() async {
     String? token = await SecureStorage.getAccessToken();
-
     final url = Uri.parse("$baseURL/dashboard");
-
     http.Client client = http.Client();
 
     try {
@@ -120,31 +115,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           "Content-Type": "application/json",
           "Accept": "application/json",
           "Authorization": "Bearer $token",
-
         },
       );
 
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Headers: ${response.headers}"); // Check if cookies are present
-
       if (response.statusCode == 401) {
         bool refreshed = await refreshToken();
-        print("refresh function called");
         if (refreshed) {
           token = await SecureStorage.getAccessToken();
-          print(token);
           response = await client.get(
             Uri.parse("$baseURL/dashboard"),
             headers: {"Authorization": "Bearer $token"},
           );
-        }
-        else{
+        } else {
           await SecureStorage.clearToken();
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", false);
         }
       }
-      print(response);
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -152,92 +139,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
           userName = jsonResponse['name'];
           user_id = jsonResponse['user']['user_id'];
         });
-
-        print("Response Body: ${response.body}");
-      } else {
-        print("Failed to fetch dashboard data");
       }
-    } catch (e) {
-      print("Error: $e");
-    } finally {
+    } catch (_) {} finally {
       client.close();
     }
   }
 
-
   Future<void> _getLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() => location = "Location services disabled");
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() => location = "Location permission denied");
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() => location = "Location permission permanently denied");
-      return;
-    }
-
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) return;
 
     Position position = await Geolocator.getCurrentPosition();
-
-
-    List<Placemark> placemarks =
-    await placemarkFromCoordinates(position.latitude, position.longitude);
-
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isNotEmpty) {
-      setState(() {
-        location = placemarks[0].locality ?? "Unknown city"; // Display city name
-      });
+      setState(() => location = placemarks[0].locality ?? "Unknown city");
     }
     await logDashboardVisit(user_id, location);
-
-  }
-
-
-
-  void _navigateTo(BuildContext context, Widget screen) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
-
-    if (result == 'profile_updated') {
-      fetchDashboardData(); // 🟦 Refresh data if profile was updated
-    }
   }
 
   Future<void> _fetchGrievanceById(String grievanceId) async {
     final token = await SecureStorage.getAccessToken();
-    final url = Uri.parse('$baseURL/grievance_id?grievance_id=$grievanceId'); // ✅ send in query
-
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    final url = Uri.parse('$baseURL/grievance_id?grievance_id=$grievanceId');
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    });
 
     if (response.statusCode == 200) {
       final grievanceData = jsonDecode(response.body);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => GetGrievanceById(grievanceData: grievanceData),
-        ),
-      );
+      Navigator.push(context, MaterialPageRoute(builder: (_) => GetGrievanceById(grievanceData: grievanceData)));
     } else {
       final error = jsonDecode(response.body);
       showDialog(
@@ -245,9 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         builder: (_) => AlertDialog(
           title: const Text('Error'),
           content: Text(error['message'] ?? 'Failed to fetch grievance.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
-          ],
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
         ),
       );
     }
@@ -256,22 +186,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[50],
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Icon(Icons.menu, color: Colors.black),
+        backgroundColor: Colors.transparent,
+        leading: const Icon(Icons.menu, color: Colors.black87),
         actions: [
           Stack(
             children: [
               IconButton(
-                icon: Icon(Icons.notifications, color: Colors.black),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => UserReminder()),
-                  );
-                },
+                icon: const Icon(Icons.notifications, color: Colors.black87),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserReminder())),
               ),
               if (notificationCount > 0)
                 Positioned(
@@ -297,6 +221,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ),
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    child: Text('$notificationCount', style: const TextStyle(fontSize: 10, color: Colors.white)),
                   ),
                 ),
             ],
@@ -306,55 +236,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Hello $userName!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
-            ),
-            Text(
-              location, // ✅ Display user's city here
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
-            ),
-            Text(
-              'Post, Track, and Transform.',
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
+            Text('Hello, $userName!', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600)),
+            Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
+            const SizedBox(height: 12),
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search Grievance ID',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.arrow_forward),
-                  onPressed: () {
-                    final id = _searchController.text.trim();
-                    if (id.isNotEmpty) {
-                      _fetchGrievanceById(id);
-                    }
-                  },
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 filled: true,
                 fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: () {
+                    final id = _searchController.text.trim();
+                    if (id.isNotEmpty) _fetchGrievanceById(id);
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 16),
-
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Expanded(child: _buildStatusCard('$registered', 'Complaint', Colors.blue)),
-                SizedBox(width: 8),
-                Expanded(child: _buildStatusCard('$inProcess', 'In Process', Colors.orange)),
-                SizedBox(width: 8),
-                Expanded(child: _buildStatusCard('$completed', 'Resolved', Colors.green)),
+                _buildStatusCard('$registered', 'Complaint', Colors.blue),
+                const SizedBox(width: 10),
+                _buildStatusCard('$inProcess', 'In Process', Colors.orange),
+                const SizedBox(width: 10),
+                _buildStatusCard('$completed', 'Resolved', Colors.green),
               ],
             ),
-
             const SizedBox(height: 16),
             Expanded(
               child: ListView(
@@ -364,161 +279,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildComplaintCard('Yadav Kumar', 'Overcrowded Bus', 'assets/bus.jpg'),
                 ],
               ),
-            ),
+            )
           ],
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        color: Colors.blue,
-        child: Container(
-          height: 70,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(icon: Icon(Icons.home, color: Colors.white), onPressed: () {
-                      Navigator.push(
-                          context, MaterialPageRoute(builder: (context) => DashboardScreen()));
-                    }),
-                    IconButton(icon: Icon(Icons.dashboard, color: Colors.white), onPressed: () {
-                      Navigator.push(
-                          context, MaterialPageRoute(builder: (context) => Dashboard()));
-                    }),
-                  ],
-                ),
-              ),
-              SizedBox(width: 40),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(icon: Icon(Icons.explore, color: Colors.white), onPressed: () {
-                      Navigator.push(
-                          context, MaterialPageRoute(builder: (context) => DashboardScreen()));
-                    }),
-        IconButton(
-          icon: Icon(Icons.person, color: Colors.white),
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProfileScreen()),
-            );
-
-            if (result == 'profile_updated') {
-              fetchDashboardData();
-            }
-          },
-        ),
-
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GrievanceScreen())),
+        backgroundColor: Colors.indigo,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
-      floatingActionButton: Container(
-        height: 65,
-        width: 65,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (context) => GrievanceScreen()));
-          },
-          backgroundColor: Colors.white,
-          shape: CircleBorder(),
-            elevation: 6,
-          child: Icon(Icons.add, size: 32, color: Colors.blue)
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
-
-  Widget _buildStatusCard(String count, String label, Color color) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: [
-          Text(
-            count,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, color: Colors.white),
-          ),
+      bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Colors.indigo,
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 1) Navigator.push(context, MaterialPageRoute(builder: (_) => Dashboard()));
+          if (index == 2) Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()));
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
   }
 
+  Widget _buildStatusCard(String count, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.4)),
+        ),
+        child: Column(
+          children: [
+            Text(count, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: GoogleFonts.poppins(fontSize: 14, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildComplaintCard(String user, String title, String imageUrl) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Stack(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             child: Image.asset(
               imageUrl,
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 180,
-                  width: double.infinity,
-                  color: Colors.grey[300],
-                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                );
-              },
             ),
           ),
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: Colors.black.withOpacity(0.4),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                Text(title, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700])),
+              ],
             ),
-          ),
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Text(
-              user,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          Positioned(
-            bottom: 10,
-            left: 10,
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
+          )
         ],
       ),
     );
