@@ -60,22 +60,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> fetchNotificationCount() async {
-    final token = await SecureStorage.getAccessToken();
-    final response = await http.get(
-      Uri.parse("$baseURL/countNotification"),
-      headers: {
-        'Content-Type': 'application/json',
-        "Authorization": "Bearer $token"
-      },
-    );
+    try {
+      final token = await SecureStorage.getAccessToken();
+      final response = await http.get(
+        Uri.parse("$baseURL/countNotification"),
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        notificationCount = data['count'];
-      });
-    } else {
-      fetchGrievanceStats();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          notificationCount = data['count'];
+        });
+      } else {
+        print("Failed to fetch notifications, status code: ${response.statusCode}");
+        await fetchGrievanceStats(); // Optional fallback
+      }
+    } catch (e) {
+      print("Error fetching notifications: $e");
     }
   }
 
@@ -195,6 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications, color: Colors.black87),
+
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserReminder())),
               ),
               if (notificationCount > 0)
@@ -202,35 +208,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   right: 3,
                   top: 0,
                   child: Container(
-                    padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: BoxConstraints(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    constraints: const BoxConstraints(
                       minWidth: 20,
                       minHeight: 20,
                     ),
                     child: Center(
                       child: Text(
                         '$notificationCount',
-                        style: TextStyle(
-                          color: Colors.white, // ✅ contrast color
-                          fontSize: 12,         // ✅ readable size
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    child: Text('$notificationCount', style: const TextStyle(fontSize: 10, color: Colors.white)),
                   ),
                 ),
             ],
           ),
+
 
 
         ],
@@ -276,7 +274,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   _buildComplaintCard('Amit Bhandana', 'Broken Footpath', 'assets/wire.jpg'),
                   _buildComplaintCard('Saksham Budhlani', 'Unattended Wires', 'assets/road.jpg'),
-                  _buildComplaintCard('Yadav Kumar', 'Overcrowded Bus', 'assets/bus.jpg'),
+                  _buildComplaintCard('Yadav Kumar', 'Overcrowded Bus', 'assets/road.jpg'),
                 ],
               ),
             )
