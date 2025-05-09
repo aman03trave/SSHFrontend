@@ -50,6 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int registered = 0;
   int inProcess = 0;
   int completed = 0;
+  List<dynamic> complaints = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -57,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     fetchDashboardData().then((_) => _getLocation());
     fetchNotificationCount();
     fetchGrievanceStats();
+    fetchComplaints();
   }
 
   Future<void> fetchNotificationCount() async {
@@ -77,10 +80,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       } else {
         print("Failed to fetch notifications, status code: ${response.statusCode}");
-        await fetchGrievanceStats(); // Optional fallback
+        await fetchGrievanceStats();
+        await fetchComplaints();// Optional fallback
       }
     } catch (e) {
       print("Error fetching notifications: $e");
+    }
+  }
+
+  Future<void> fetchComplaints() async {
+    try {
+      final token = await SecureStorage.getAccessToken();
+      final response = await http.get(
+        Uri.parse("$baseURL/get_Public_Grievance"), // Replace with your API URL
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print(response.body);
+        setState(() {
+          complaints = jsonDecode(response.body);
+          isLoading = false;
+        });
+      } else {
+        print("Failed to fetch grievances. Status code: ${response.statusCode}");
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error: $e");
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -270,14 +305,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView(
-                children: [
-                  _buildComplaintCard('Amit Bhandana', 'Broken Footpath', 'assets/wire.jpg'),
-                  _buildComplaintCard('Saksham Budhlani', 'Unattended Wires', 'assets/road.jpg'),
-                  _buildComplaintCard('Yadav Kumar', 'Overcrowded Bus', 'assets/road.jpg'),
-                ],
+              child: ListView.builder(
+                itemCount: complaints.length,
+                itemBuilder: (context, index) {
+                  final complaint = complaints[index];
+                  final userId = complaint["complainant_id"];
+                  final description = complaint["description"];
+                  final title = complaint["title"];
+                  final imageUrl = complaint["media"]["image"];
+
+                  return _buildComplaintCard(description, title, imageUrl);
+                },
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -322,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildComplaintCard(String user, String title, String imageUrl) {
+  Widget _buildComplaintCard(String description, String title, String imageUrl) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -341,11 +381,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.asset(
-              imageUrl,
+            child: Image.network(
+              "$baseURL/$imageUrl", // Replace with your domain
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset('assets/placeholder.jpg', fit: BoxFit.cover);
+              },
             ),
           ),
           Padding(
@@ -353,8 +396,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                Text(title, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700])),
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                Text(description, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700])),
               ],
             ),
           )
