@@ -17,6 +17,8 @@ class GrievanceScreen extends StatefulWidget {
 
 class _GrievanceScreenState extends State<GrievanceScreen> {
   final _formKey = GlobalKey<FormState>();
+  List<XFile> selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
@@ -27,7 +29,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   List<dynamic> blocks = [];
   List<dynamic> schools = [];
   List<dynamic> categories = [];
-  File? selectedImage;
   File? selectedDocument;
   bool isSubmitting = false;
 
@@ -49,7 +50,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   }
 
   Future<void> fetchBlocks(String districtname) async {
-    print("District Name: $districtname");
     final response = await http.post(
       Uri.parse('$baseURL/blocks'),
       headers: {"Content-Type": "application/json"},
@@ -62,8 +62,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
         selectedSchool = null;
         schools = [];
       });
-    } else {
-      print("Error Occurred");
     }
   }
 
@@ -78,8 +76,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
         schools = jsonDecode(response.body)['schools'];
         selectedSchool = null;
       });
-    } else {
-      print("Error Occurred");
     }
   }
 
@@ -88,15 +84,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     if (response.statusCode == 200) {
       setState(() {
         categories = jsonDecode(response.body)['grievance_category'];
-      });
-    }
-  }
-
-  Future<void> pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        selectedImage = File(pickedFile.path);
       });
     }
   }
@@ -112,7 +99,6 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
 
   Future<void> submitGrievance() async {
     if (isSubmitting) return;
-
     String? token = await SecureStorage.getAccessToken();
     if (!_formKey.currentState!.validate()) return;
 
@@ -131,9 +117,10 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       request.fields['title'] = titleController.text;
       request.fields['description'] = descriptionController.text;
 
-      if (selectedImage != null) {
-        request.files.add(await http.MultipartFile.fromPath('image', selectedImage!.path));
+      for (var image in selectedImages) {
+        request.files.add(await http.MultipartFile.fromPath('image', image.path));
       }
+
       if (selectedDocument != null) {
         request.files.add(await http.MultipartFile.fromPath('document', selectedDocument!.path));
       }
@@ -144,18 +131,14 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
     var response = await sendRequest(token);
 
     if (response.statusCode == 401) {
-      print("Token expired, refreshing...");
       bool refreshed = await refreshToken();
-
       if (refreshed) {
         token = await SecureStorage.getAccessToken();
         response = await sendRequest(token);
       } else {
         showCustomSnackBar(context, "Session expired. Please log in again.");
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
-        setState(() {
-          isSubmitting = false;
-        });
+        setState(() => isSubmitting = false);
         return;
       }
     }
@@ -170,7 +153,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       isSubmitting = false;
       titleController.clear();
       descriptionController.clear();
-      selectedImage = null;
+      selectedImages.clear();
       selectedDocument = null;
       selectedDistrict = null;
       selectedBlock = null;
@@ -199,27 +182,16 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey[700]),
+                  icon: Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            Icon(Icons.check_circle, color: Colors.green[600], size: 48),
+            Icon(Icons.check_circle, color: Colors.white, size: 48),
             const SizedBox(height: 12),
-            Text(
-              'Grievance Submitted!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
+            Text('Grievance Submitted!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text(
-              'Your grievance "$grievanceTitle" has been submitted successfully.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-            ),
+            Text('Your grievance "$grievanceTitle" has been submitted successfully.', textAlign: TextAlign.center),
             const SizedBox(height: 10),
           ],
         ),
@@ -230,7 +202,11 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Grievance")),
+      appBar: AppBar(
+        title: Text("Add Grievance"),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -239,106 +215,132 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: selectedDistrict,
-                  hint: Text("Select District"),
-                  items: districts.map((district) => DropdownMenuItem(
-                    value: district['district_name'].toString(),
-                    child: Text(district['district_name']),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedDistrict = value;
-                      fetchBlocks(value!);
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: selectedBlock,
-                  hint: Text("Select Block"),
-                  items: blocks.map((block) => DropdownMenuItem(
-                    value: block['block_id'].toString(),
-                    child: Text(block['block_name']),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedBlock = value;
-                      fetchSchools(value!);
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: selectedSchool,
-                  hint: Text("Select School"),
-                  items: schools.map((school) => DropdownMenuItem(
-                    value: school['school_id'].toString(),
-                    child: Text(school['school_name']),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedSchool = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  value: selectedCategory,
-                  hint: Text("Select Grievance Category"),
-                  items: categories.map((category) => DropdownMenuItem(
-                    value: category['grievance_category_name'].toString(),
-                    child: Text(category['grievance_category_name']),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategory = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
+                buildDropdown("Select District", selectedDistrict, districts,
+                        (item) => item['district_name'], (item) => item['district_name'], (val) {
+                      setState(() {
+                        selectedDistrict = val;
+                        fetchBlocks(val!);
+                      });
+                    }),
+                SizedBox(height: 12),
+                buildDropdown("Select Block", selectedBlock, blocks,
+                        (item) => item['block_name'], (item) => item['block_id'].toString(), (val) {
+                      setState(() {
+                        selectedBlock = val;
+                        fetchSchools(val!);
+                      });
+                    }),
+                SizedBox(height: 12),
+                buildDropdown("Select School", selectedSchool, schools,
+                        (item) => item['school_name'], (item) => item['school_id'].toString(), (val) {
+                      setState(() => selectedSchool = val);
+                    }),
+                SizedBox(height: 12),
+                buildDropdown("Grievance Category", selectedCategory, categories,
+                        (item) => item['grievance_category_name'], (item) => item['grievance_category_name'], (val) {
+                      setState(() => selectedCategory = val);
+                    }),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: titleController,
-                  decoration: InputDecoration(labelText: "Title", border: OutlineInputBorder()),
-                  validator: (value) => value!.isEmpty ? "Please enter a title" : null,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.indigo),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Title is required' : null,
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 12),
                 TextFormField(
                   controller: descriptionController,
-                  decoration: InputDecoration(labelText: "Description", border: OutlineInputBorder()),
                   maxLines: 3,
-                  validator: (value) => value!.isEmpty ? "Please enter a description" : null,
-                ),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: pickImage,
-                      child: Text("Pick Image"),
-                    ),
-                    if (selectedImage != null) Icon(Icons.check, color: Colors.green),
-                  ],
-                ),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: pickDocument,
-                      child: Text("Pick Document"),
-                    ),
-                    if (selectedDocument != null) Icon(Icons.check, color: Colors.green),
-                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.indigo),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Description is required' : null,
                 ),
                 SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: submitGrievance,
-                  child: Text("Submit Grievance"),
+                Text("Attach Images (optional)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                SizedBox(height: 6),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.photo_library, color: Colors.white),
+                  label: Text("Pick Images"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final images = await _picker.pickMultiImage();
+                    if (images != null) {
+                      setState(() {
+                        selectedImages = images;
+                      });
+                    }
+                  },
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: selectedImages
+                      .map((img) => Image.file(
+                    File(img.path),
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  ))
+                      .toList(),
+                ),
+                SizedBox(height: 20),
+                Text("Attach Document (optional)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                SizedBox(height: 6),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.attach_file, color:Colors.white),
+                  label: Text("Pick Document"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: pickDocument,
+                ),
+                if (selectedDocument != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.insert_drive_file, color: Colors.white),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selectedDocument!.path.split('/').last,
+                            style: TextStyle(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton.icon(
+                    label: Text("Submit Grievance"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        submitGrievance();
+                      }
+                    },
+                    icon: Icon(Icons.send,color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -347,4 +349,30 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       ),
     );
   }
+}
+
+Widget buildDropdown(
+    String label,
+    String? value,
+    List<dynamic> items,
+    String Function(dynamic) getLabel,
+    String Function(dynamic) getValue,
+    void Function(String?) onChanged,
+    ) {
+  return DropdownButtonFormField<String>(
+    isExpanded: true,
+    value: value,
+    decoration: InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(),
+    ),
+    validator: (val) => val == null ? 'Required field' : null,
+    items: items.map<DropdownMenuItem<String>>((item) {
+      return DropdownMenuItem<String>(
+        value: getValue(item),
+        child: Text(getLabel(item)),
+      );
+    }).toList(),
+    onChanged: onChanged,
+  );
 }
