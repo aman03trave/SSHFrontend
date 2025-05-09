@@ -102,11 +102,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (response.statusCode == 200) {
       await fetchProfile();
-
       showCustomSnackBar(context, "Profile Updated");
       Navigator.pop(context, 'profile_updated');
-
-
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Update failed!")),
@@ -140,9 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       showCustomSnackBar(context, "Logout Successful!");
       await Future.delayed(Duration(milliseconds: 1500));
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => LoginPage())
-      );
-      // or your login route
+          MaterialPageRoute(builder: (context) => LoginPage()));
     } else {
       showCustomSnackBar(context, "Logout failed!");
     }
@@ -154,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: Text("Edit Profile"),
         centerTitle: true,
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.indigo,
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
@@ -195,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(
                     children: [
-                      Icon(Icons.wc, color: Colors.blue),
+                      Icon(Icons.wc, color: Colors.indigo),
                       SizedBox(width: 10),
                       Text("Gender:", style: TextStyle(fontSize: 16)),
                       SizedBox(width: 10),
@@ -223,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.indigo,
                   ),
                   child: isSaving
                       ? CircularProgressIndicator(color: Colors.white)
@@ -243,12 +238,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextField(
         controller: controller,
-        keyboardType:
-        isNumber ? TextInputType.number : (isEmail ? TextInputType.emailAddress : TextInputType.text),
+        keyboardType: isNumber
+            ? TextInputType.number
+            : (isEmail ? TextInputType.emailAddress : TextInputType.text),
         readOnly: label == "Email",
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Colors.blue),
+          prefixIcon: Icon(icon, color: Colors.indigo),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
