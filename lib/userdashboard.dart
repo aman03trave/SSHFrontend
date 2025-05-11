@@ -207,16 +207,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Content-Type': 'application/json',
     });
 
-    if(response.statusCode == 401){
-      bool refreshed = await refreshToken();
-      if (refreshed) {
-        token = await SecureStorage.getAccessToken();
-        response = await http.get(url, headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        });
-            }
-    }
+    // if(response.statusCode == 401){
+    //   bool refreshed = await refreshToken();
+    //   if (refreshed) {
+    //     token = await SecureStorage.getAccessToken();
+    //     response = await http.get(url, headers: {
+    //       'Authorization': 'Bearer $token',
+    //       'Content-Type': 'application/json'
+    //     });
+    //         }
+    // }
 
     if (response.statusCode == 200) {
       final grievanceData = jsonDecode(response.body);

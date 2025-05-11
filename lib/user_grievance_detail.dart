@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,6 +11,7 @@ import 'dart:convert';
 import 'config.dart';
 import 'storage_service.dart';
 import 'refreshtoken.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class GrievanceDetailPage extends StatefulWidget {
   final Map<String, dynamic> complaint;
@@ -147,6 +149,10 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
         return 'Update on "$code"';
     }
   }
+  String formatToDate(String timestamp) {
+    final DateTime dateTime = DateTime.parse(timestamp).toLocal();
+    return DateFormat('dd/MM/yyyy').format(dateTime);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,14 +224,34 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
                     leading: Icon(Icons.timeline, color: Colors.blue),
-                    title: Text(getStatusMessage(log)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    title:
+                    // Text(getStatusMessage(log)),
+
+                    Row(
                       children: [
-                        Text("Officer: ${log['officer_name']}"),
-                        Text("Date: ${DateTime.parse(log['action_timestamp']).toLocal()}"),
+                        Expanded(
+                          child: Text(
+                            '${getStatusMessage(log)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          formatToDate(log['action_timestamp']),
+                          style: const TextStyle(color: Colors.black38, fontSize: 12),
+                        ),
                       ],
                     ),
+                    // subtitle: Column(
+                    //   crossAxisAlignment: CrossAxisAlignment.start,
+                    //   children: [
+                    //     Text("Officer: ${log['officer_name']}"),
+                    //     // Text("Date: ${DateTime.parse(log['action_timestamp']).toLocal()}"),
+                    //   ],
+                    // ),
                   ),
                 );
               }).toList(),

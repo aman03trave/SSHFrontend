@@ -9,6 +9,11 @@ import 'config.dart';
 import 'refreshtoken.dart';
 import 'customsnackbar.dart';
 import 'login.dart';
+import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
+import 'userdashboard.dart';
+import 'logvisit.dart';
+// import 'Level2_DisplayAssignedGrievance.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -19,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _image;
   final picker = ImagePicker();
   bool isSaving = false;
+  String role_id = "";
 
   TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
@@ -34,6 +40,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> fetchProfile() async {
     String? token = await SecureStorage.getAccessToken();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    role_id = prefs.getString("role_id") ?? "";
+
     var response = await http.get(
       Uri.parse("$baseURL/get-profile"),
       headers: {"Authorization": "Bearer $token"},
@@ -53,19 +62,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final user = data['user'];
+      final profileData = user['Profile'][0];
+      final profilePicture = user['profile_picture']?['profile_pic'];
+
       setState(() {
-        nameController.text = user['name'] ?? "";
-        emailController.text = user['email'] ?? "";
-        ageController.text = user['age'].toString();
-        phoneController.text = user['phone_no'] ?? "";
-        gender = user['gender'] ?? "Male";
+        nameController.text = profileData['name'] ?? "";
+        emailController.text = profileData['email'] ?? "";
+        ageController.text = profileData['age'].toString();
+        phoneController.text = profileData['phone_no'] ?? "";
+        gender = profileData['gender'] ?? "Male";
+        _image = profilePicture != null ? File(profilePicture) : null;
       });
-      print(user);
     } else {
       print("Failed to load profile");
     }
   }
 
+  void navigateToHomePage() {
+    if (role_id == "3") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );}
+    else if(role_id == "4"){
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+      );}
+    else if(role_id == "5"){
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Level2Dashboard()),
+      );
+    }
+  }
   Future<void> updateProfile() async {
     setState(() => isSaving = true);
     String? token = await SecureStorage.getAccessToken();
@@ -119,6 +149,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _image = File(pickedFile.path);
       });
+
+      // Show confirmation dialog
+      _showImageConfirmationDialog();
+    }
+  }
+
+  Future<void> _showImageConfirmationDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Confirm Profile Picture"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.file(
+              _image!,
+              height: 100,
+              width: 100,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 10),
+            Text("Do you want to set this as your profile picture?"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _uploadProfilePicture();
+            },
+            child: Text("Set as Profile Picture"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _uploadProfilePicture() async {
+    String? token = await SecureStorage.getAccessToken();
+
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseURL/update-profile-picture'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(
+      await http.MultipartFile.fromPath('profile_picture', _image!.path),
+    );
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      showCustomSnackBar(context, "Profile Picture Updated");
+      fetchProfile(); // Fetch updated profile after upload
+    } else {
+      setState(() {
+        AssetImage('assets/img1.jpg') as ImageProvider;
+      });
+      showCustomSnackBar(context, "Failed to update profile picture");
     }
   }
 
@@ -135,8 +230,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       await SecureStorage.clearToken();
       showCustomSnackBar(context, "Logout Successful!");
-      await Future.delayed(Duration(milliseconds: 1500));
-      Navigator.pushReplacement(context,
+      // await Future.delayed(Duration(milliseconds: 400));
+      Navigator.push(context,
           MaterialPageRoute(builder: (context) => LoginPage()));
     } else {
       showCustomSnackBar(context, "Logout failed!");
@@ -147,14 +242,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Edit Profile"),
+        title: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.indigo,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: navigateToHomePage,
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.power_settings_new, color: Colors.white),
             tooltip: "Logout",
-            onPressed: () => logout(context),
+            onPressed: () => _showLogoutConfirmation(context),
           ),
         ],
       ),
@@ -173,12 +272,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       radius: 60,
                       backgroundColor: Colors.grey[300],
                       backgroundImage: _image != null
-                          ? FileImage(_image!)
+                          ? NetworkImage("$baseURL${_image!.path}")
                           : AssetImage('assets/img1.jpg') as ImageProvider,
                     ),
-                    IconButton(
-                      icon: Icon(Icons.camera_alt, color: Colors.black),
-                      onPressed: _pickImage,
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.indigo,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.camera_alt, color: Colors.white),
+                          onPressed: _pickImage,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -241,12 +357,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         keyboardType: isNumber
             ? TextInputType.number
             : (isEmail ? TextInputType.emailAddress : TextInputType.text),
-        readOnly: label == "Email",
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.indigo),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Logout Confirmation"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await SecureStorage.clearToken();
+              navigateToHomePage();
+            },
+            child: const Text("Logout"),
+          ),
+        ],
       ),
     );
   }

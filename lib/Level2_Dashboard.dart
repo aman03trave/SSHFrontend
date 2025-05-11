@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'profile.dart';
@@ -11,6 +14,7 @@ import 'refreshtoken.dart';
 import 'Level2_NewAssignedGrievance.dart';
 import 'Level2_AcceptedGrievance.dart';
 import 'L2officer_notifications.dart';
+import 'logvisit.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -93,12 +97,13 @@ class _HomePageState extends State<HomePage> {
   String userName = "";
   String user_id = "";
   String userId = "";
+  String location = "Fetching location...";
 
 
   @override
   void initState() {
     super.initState();
-    fetchDashboardData();
+    fetchDashboardData().then((_) => _getLocation());
     fetchLatestGrievances();
   }
 
@@ -148,6 +153,19 @@ class _HomePageState extends State<HomePage> {
       client.close();
     }
   }
+  Future<void> _getLocation() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    if (placemarks.isNotEmpty) {
+      setState(() => location = placemarks[0].locality ?? "Unknown city");
+    }
+    await logDashboardVisit(user_id, location);
+  }
 
   Future<List<Grievance>> fetchLatestGrievances() async {
     String? token = await SecureStorage.getAccessToken();
@@ -194,6 +212,7 @@ class _HomePageState extends State<HomePage> {
             'Hello, $userName',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
+          Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 16),
           TextField(
             decoration: InputDecoration(
