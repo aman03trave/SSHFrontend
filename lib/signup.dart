@@ -33,11 +33,15 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmpasswordController = TextEditingController();
+  final TextEditingController identityValueController = TextEditingController();
 
   String selectedGender = 'Male';
-  String roleName = 'Complainant';
+  String roleName = 'complainant';
   String? selectedCategory;
   List<String> complainantCategories = [];
+
+  String? selectedIdentityProof;
+  List<String> identityProofOptions = [];
 
   bool isLoading = false;
   bool isError = false;
@@ -52,33 +56,70 @@ class _SignupPageState extends State<SignupPage> {
   void initState() {
     super.initState();
     fetchComplainantCategories();
+    fetchIdentityProofs();
   }
 
   Future<void> fetchComplainantCategories() async {
-    String apiUrl = "$baseURL/complainant_category";
+    final String apiUrl = "$baseURL/complainant_category";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        List categories = data['complainant_category'];
+      print("Complainant categories response: ${response.body}");
 
-        setState(() {
-          complainantCategories = categories.map<String>((item) => item['category_name']).toList();
-        });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['status'] == true && data['complainant_category'] is List) {
+          List categories = data['complainant_category'];
+          setState(() {
+            complainantCategories = categories.map<String>((item) => item['category_name'].toString()).toList();
+          });
+        } else {
+          throw Exception("Invalid category response format");
+        }
       } else {
-        setState(() {
-          isError = true;
-          errorMessage = "Failed to fetch categories.";
-        });
+        throw Exception("Failed to fetch categories. Status: ${response.statusCode}");
       }
     } catch (error) {
+      print("Category Fetch Error: $error");
       setState(() {
         isError = true;
-        errorMessage = "Network error. Please try again.";
+        errorMessage = "Error loading complainant categories.";
       });
     }
   }
+
+  Future<void> fetchIdentityProofs() async {
+    final String apiUrl = "$baseURL/identity_proof";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      print("Identity proof response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['status'] == true && data['identity_proof'] is List) {
+          List proofs = data['identity_proof'];
+          setState(() {
+            identityProofOptions = proofs.map<String>((item) => item['proof_type'].toString()).toList();
+          });
+        } else {
+          throw Exception("Invalid identity proof response format");
+        }
+      } else {
+        throw Exception("Failed to fetch identity proofs. Status: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Identity Fetch Error: $error");
+      setState(() {
+        isError = true;
+        errorMessage = "Error loading identity proofs.";
+      });
+    }
+  }
+
+
 
   void validatePassword(String password) {
     setState(() {
@@ -87,12 +128,13 @@ class _SignupPageState extends State<SignupPage> {
       hasMinLength = password.length >= 8;
     });
   }
+
   String? passwordValidator(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Password cannot be empty';
     }
     if (!hasUppercase || !hasSpecialChar || !hasMinLength) {
-      setState(() => showPasswordHints = true); // Show hints after failure
+      setState(() => showPasswordHints = true);
       return 'Password must meet all criteria below';
     }
     return null;
@@ -123,6 +165,11 @@ class _SignupPageState extends State<SignupPage> {
       "category": selectedCategory,
     };
 
+    if (selectedIdentityProof != null && identityValueController.text.trim().isNotEmpty) {
+      requestBody["identity_proof"] = selectedIdentityProof;
+      requestBody["identity_value"] = identityValueController.text.trim();
+    }
+
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -134,20 +181,20 @@ class _SignupPageState extends State<SignupPage> {
         var responseData = jsonDecode(response.body);
         showCustomSnackBar(context, "Signup Successful! Welcome, ${responseData['name']}");
 
+        nameController.clear();
+        ageController.clear();
+        emailController.clear();
+        phoneController.clear();
+        passwordController.clear();
+        confirmpasswordController.clear();
+        identityValueController.clear();
 
-
-    // Clear all text fields after successful signup
-    nameController.clear();
-    ageController.clear();
-    emailController.clear();
-    phoneController.clear();
-    passwordController.clear();
-    confirmpasswordController.clear();
-    setState(() {
-    selectedGender = 'Male';
-    selectedCategory = null;
-    showPasswordHints = false; // Hide password hints after reset
-    });
+        setState(() {
+          selectedGender = 'Male';
+          selectedCategory = 'student';
+          selectedIdentityProof = null;
+          showPasswordHints = false;
+        });
       } else {
         var errorResponse = jsonDecode(response.body);
         setState(() {
@@ -155,7 +202,6 @@ class _SignupPageState extends State<SignupPage> {
           errorMessage = errorResponse['message'] ?? "Signup Failed!";
         });
         showCustomSnackBar(context, errorMessage);
-        // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text()));
       }
     } catch (error) {
       setState(() {
@@ -163,7 +209,6 @@ class _SignupPageState extends State<SignupPage> {
         errorMessage = "Network error. Please try again!";
       });
       showCustomSnackBar(context, errorMessage);
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() {
         isLoading = false;
@@ -214,15 +259,14 @@ class _SignupPageState extends State<SignupPage> {
                   SizedBox(height: 10),
                   TextFormField(controller: phoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: "Phone Number", border: OutlineInputBorder())),
                   SizedBox(height: 10),
-
-                  // Dropdown for Complainant Category
                   DropdownButtonFormField<String>(
-                    isExpanded: true, // Ensures it doesn't overflow
-                    value: selectedCategory,
+                    isExpanded: true,
+                    value: complainantCategories.contains(selectedCategory) ? selectedCategory : null,
                     hint: Text("Complainant Category"),
-                    items: complainantCategories.map((category)
-                    => DropdownMenuItem(value: category,
-                        child: Text(category))).toList(),
+                    items: complainantCategories.map((category) => DropdownMenuItem(
+                      value: category,
+                      child: Text(category),
+                    )).toList(),
                     onChanged: (value) => setState(() => selectedCategory = value),
                     decoration: InputDecoration(border: OutlineInputBorder()),
                   ),
@@ -235,35 +279,49 @@ class _SignupPageState extends State<SignupPage> {
                   TextFormField(controller: confirmpasswordController, obscureText: true, decoration: InputDecoration(labelText: "Confirm Password", border: OutlineInputBorder())),
                   SizedBox(height: 10),
                   if (showPasswordHints)
-                  Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                      passwordValidationItem("At least one uppercase letter", hasUppercase),
-                      passwordValidationItem("At least one special character", hasSpecialChar),
-                      passwordValidationItem("Minimum 8 characters", hasMinLength),
-                ],
-                 ),
+                        passwordValidationItem("At least one uppercase letter", hasUppercase),
+                        passwordValidationItem("At least one special character", hasSpecialChar),
+                        passwordValidationItem("Minimum 8 characters", hasMinLength),
+                      ],
+                    ),
+                  SizedBox(height: 10),
+
+                  // Optional Identity Proof Section
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedIdentityProof,
+                    hint: Text("Identity Proof (Optional)"),
+                    items: identityProofOptions.map((proof) =>
+                        DropdownMenuItem(value: proof, child: Text(proof))).toList(),
+                    onChanged: (value) => setState(() => selectedIdentityProof = value),
+                    decoration: InputDecoration(border: OutlineInputBorder()),
+                  ),
+                  SizedBox(height: 10),
+                  if (selectedIdentityProof != null)
+                    TextFormField(
+                      controller: identityValueController,
+                      decoration: InputDecoration(labelText: "Identity Number", border: OutlineInputBorder()),
+                    ),
+
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: isLoading ? null : signup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
-                        minimumSize: Size(200, 50),
+                      minimumSize: Size(200, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
                     child: isLoading
                         ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      "Sign Up",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                        : Text("Sign Up", style: TextStyle(fontSize: 16, color: Colors.white)),
                   ),
-
                 ],
-
-            ),
+              ),
             ),
           ),
         ),
