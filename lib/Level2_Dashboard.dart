@@ -98,6 +98,7 @@ class _HomePageState extends State<HomePage> {
   String user_id = "";
   String userId = "";
   String location = "Fetching location...";
+  int notificationCount = 0;
 
 
   @override
@@ -179,6 +180,31 @@ class _HomePageState extends State<HomePage> {
       throw Exception('Failed to load grievances');
     }
   }
+  Future<void> fetchNotificationCount() async {
+    try {
+      final token = await SecureStorage.getAccessToken();
+      final response = await http.get(
+        Uri.parse("$baseURL/countNotification"),
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          notificationCount = data['count'];
+        });
+      } else {
+        print("Failed to fetch notifications, status code: ${response.statusCode}");
+        // Optional fallback
+      }
+    } catch (e) {
+      print("Error fetching notifications: $e");
+    }
+  }
+
 
 
   @override
@@ -195,12 +221,43 @@ class _HomePageState extends State<HomePage> {
           color: Colors.black,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
-            },
-            color: Colors.black,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
+                },
+                color: Colors.black,
+              ),
+              if (notificationCount > 0)
+                Positioned(
+                  right: -1,  // Adjust this value to move horizontally
+                  top: -1,    // Adjust this value to move vertically
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$notificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],

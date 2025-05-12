@@ -185,11 +185,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<int> fetchReturnedGrievanceCount() async {
-    return await _fetchCountFromAPI("$baseURL/returnedGrievanceCount");
+    return await _fetchCountFromAPI("$baseURL/get_returned_count");
   }
 
   Future<int> fetchATRReportCount() async {
-    return await _fetchCountFromAPI("$baseURL/atrReportCount");
+    return await _fetchCountFromAPI("$baseURL/getATRL1count");
   }
 
   Future<int> fetchDisposedGrievanceCount() async {
@@ -267,6 +267,8 @@ class _HomePageState extends State<HomePage> {
 
 
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -279,16 +281,48 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {},
           color: Colors.black,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
-            },
-            color: Colors.black,
-          ),
-          const SizedBox(width: 8),
-        ],
+          actions: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
+                  },
+                  color: Colors.black,
+                ),
+                if (notificationCount > 0)
+                  Positioned(
+                    right: -1,  // Adjust this value to move horizontally
+                    top: -1,    // Adjust this value to move vertically
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$notificationCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 8),
+          ],
+
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -382,7 +416,7 @@ class _HomePageState extends State<HomePage> {
             _ServiceCard(
               icon: Icons.assignment,
               label: "Assign Grievance",
-              count: assignedGrievanceCount,
+              count: newGrievanceCount,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AssignToLevel2Page()),
@@ -399,7 +433,7 @@ class _HomePageState extends State<HomePage> {
             ),
             _ServiceCard(
               icon: Icons.fact_check,
-              label: "ATR Report",
+              label: "ATR Review",
               count: atrReportCount,
               onTap: () => Navigator.push(
                 context,
@@ -539,30 +573,31 @@ class _ServiceCard extends StatelessWidget {
             children: [
               Stack(
                 alignment: Alignment.topRight,
+                clipBehavior: Clip.none,  // Allow overflow
                 children: [
-                  Icon(icon, color: Colors.blue.shade800, size: 30),
+                  Icon(icon, color: Colors.blue.shade800, size: 40),
                   if (count > 0)
                     Positioned(
-                      right: 0,
-                      top: 0,
+                      right: -4,    // Changed from -10 to -4 to make it visible
+                      top: -4,      // Changed from -10 to -4 to make it visible
                       child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
                           color: Colors.red,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         constraints: const BoxConstraints(
-                          minWidth: 20,
-                          minHeight: 20,
+                          minWidth: 18,
+                          minHeight: 18,
                         ),
-                        child: Text(
-                          '$count',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        child: Center(
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
@@ -580,6 +615,7 @@ class _ServiceCard extends StatelessWidget {
     );
   }
 }
+
 
 // Placeholder Page
 class DummyPage extends StatelessWidget {
