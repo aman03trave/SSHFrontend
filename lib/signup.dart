@@ -60,65 +60,71 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Future<void> fetchComplainantCategories() async {
-    final String apiUrl = "$baseURL/complainant_category";
+    String apiUrl = "$baseURL/complainant_category";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
-      print("Complainant categories response: ${response.body}");
-
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        var data = jsonDecode(response.body);
 
-        if (data['status'] == true && data['complainant_category'] is List) {
+        if (data['status'] == true) {
           List categories = data['complainant_category'];
           setState(() {
-            complainantCategories = categories.map<String>((item) => item['category_name'].toString()).toList();
+            complainantCategories = categories.map<String>((item) => item['category_name']).toList();
           });
         } else {
-          throw Exception("Invalid category response format");
+          setState(() {
+            isError = true;
+            errorMessage = "Failed to fetch categories.";
+          });
         }
       } else {
-        throw Exception("Failed to fetch categories. Status: ${response.statusCode}");
+        setState(() {
+          isError = true;
+          errorMessage = "Failed to fetch categories.";
+        });
       }
     } catch (error) {
-      print("Category Fetch Error: $error");
       setState(() {
         isError = true;
-        errorMessage = "Error loading complainant categories.";
+        errorMessage = "Network error. Please try again.";
       });
     }
   }
 
+
   Future<void> fetchIdentityProofs() async {
-    final String apiUrl = "$baseURL/identity_proof";
+    String apiUrl = "$baseURL/identity_proof";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
-      print("Identity proof response: ${response.body}");
-
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        var data = jsonDecode(response.body);
 
-        if (data['status'] == true && data['identity_proof'] is List) {
+        if (data['status'] == true) {
           List proofs = data['identity_proof'];
           setState(() {
-            identityProofOptions = proofs.map<String>((item) => item['proof_type'].toString()).toList();
+            identityProofOptions = proofs.map<String>((item) => item['proof_type']).toList();
           });
         } else {
-          throw Exception("Invalid identity proof response format");
+          setState(() {
+            isError = true;
+            errorMessage = "Failed to fetch identity proofs.";
+          });
         }
       } else {
-        throw Exception("Failed to fetch identity proofs. Status: ${response.statusCode}");
+        setState(() {
+          isError = true;
+          errorMessage = "Failed to fetch identity proofs.";
+        });
       }
     } catch (error) {
-      print("Identity Fetch Error: $error");
       setState(() {
         isError = true;
-        errorMessage = "Error loading identity proofs.";
+        errorMessage = "Network error. Please try again.";
       });
     }
   }
-
 
 
   void validatePassword(String password) {

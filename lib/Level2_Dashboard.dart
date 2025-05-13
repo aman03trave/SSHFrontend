@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'profile.dart';
@@ -11,6 +14,7 @@ import 'refreshtoken.dart';
 import 'Level2_NewAssignedGrievance.dart';
 import 'Level2_AcceptedGrievance.dart';
 import 'L2officer_notifications.dart';
+import 'logvisit.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -93,12 +97,14 @@ class _HomePageState extends State<HomePage> {
   String userName = "";
   String user_id = "";
   String userId = "";
+  String location = "Fetching location...";
+  int notificationCount = 0;
 
 
   @override
   void initState() {
     super.initState();
-    fetchDashboardData();
+    fetchDashboardData().then((_) => _getLocation());
     fetchLatestGrievances();
   }
 
@@ -148,6 +154,19 @@ class _HomePageState extends State<HomePage> {
       client.close();
     }
   }
+  Future<void> _getLocation() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    if (placemarks.isNotEmpty) {
+      setState(() => location = placemarks[0].locality ?? "Unknown city");
+    }
+    await logDashboardVisit(user_id, location);
+  }
 
   Future<List<Grievance>> fetchLatestGrievances() async {
     String? token = await SecureStorage.getAccessToken();
@@ -161,6 +180,31 @@ class _HomePageState extends State<HomePage> {
       throw Exception('Failed to load grievances');
     }
   }
+  Future<void> fetchNotificationCount() async {
+    try {
+      final token = await SecureStorage.getAccessToken();
+      final response = await http.get(
+        Uri.parse("$baseURL/countNotification"),
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          notificationCount = data['count'];
+        });
+      } else {
+        print("Failed to fetch notifications, status code: ${response.statusCode}");
+        // Optional fallback
+      }
+    } catch (e) {
+      print("Error fetching notifications: $e");
+    }
+  }
+
 
 
   @override
@@ -177,12 +221,43 @@ class _HomePageState extends State<HomePage> {
           color: Colors.black,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
-            },
-            color: Colors.black,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
+                },
+                color: Colors.black,
+              ),
+              if (notificationCount > 0)
+                Positioned(
+                  right: -1,  // Adjust this value to move horizontally
+                  top: -1,    // Adjust this value to move vertically
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$notificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -194,6 +269,7 @@ class _HomePageState extends State<HomePage> {
             'Hello, $userName',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
+          Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 16),
           TextField(
             decoration: InputDecoration(

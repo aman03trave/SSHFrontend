@@ -5,7 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'profile.dart';
-import 'AddGrievance.dart';
+import 'user_AddGrievance.dart';
 import 'storage_service.dart';
 import 'config.dart';
 import 'logvisit.dart';
@@ -200,12 +200,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchGrievanceById(String grievanceId) async {
-    final token = await SecureStorage.getAccessToken();
-    final url = Uri.parse('$baseURL/grievance_id?grievance_id=$grievanceId');
-    final response = await http.get(url, headers: {
+    var token = await SecureStorage.getAccessToken();
+    var url = Uri.parse('$baseURL/grievance_id?grievance_id=$grievanceId');
+    var response = await http.get(url, headers: {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
     });
+
+    // if(response.statusCode == 401){
+    //   bool refreshed = await refreshToken();
+    //   if (refreshed) {
+    //     token = await SecureStorage.getAccessToken();
+    //     response = await http.get(url, headers: {
+    //       'Authorization': 'Bearer $token',
+    //       'Content-Type': 'application/json'
+    //     });
+    //         }
+    // }
 
     if (response.statusCode == 200) {
       final grievanceData = jsonDecode(response.body);
@@ -397,8 +408,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                Text(description, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700])),
-              ],
+                Text(description, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700] )  )           ],
             ),
           )
         ],

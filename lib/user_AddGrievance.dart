@@ -31,6 +31,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
   List<dynamic> categories = [];
   File? selectedDocument;
   bool isSubmitting = false;
+  bool isPublic = true; // Default value is Public
 
   @override
   void initState() {
@@ -116,6 +117,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       request.fields['grievance_category'] = selectedCategory ?? '';
       request.fields['title'] = titleController.text;
       request.fields['description'] = descriptionController.text;
+      request.fields['is_public'] = isPublic.toString();
 
       for (var image in selectedImages) {
         request.files.add(await http.MultipartFile.fromPath('image', image.path));
@@ -161,6 +163,7 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
       selectedCategory = null;
       blocks = [];
       schools = [];
+      isPublic = true;
     });
   }
 
@@ -262,6 +265,36 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
                   validator: (value) => value!.isEmpty ? 'Description is required' : null,
                 ),
                 SizedBox(height: 20),
+                Text("Select Privacy", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 14)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<bool>(
+                        title: const Text('Public'),
+                        value: true,
+                        groupValue: isPublic,
+                        onChanged: (value) {
+                          setState(() {
+                            isPublic = value!;
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<bool>(
+                        title: const Text('Private'),
+                        value: false,
+                        groupValue: isPublic,
+                        onChanged: (value) {
+                          setState(() {
+                            isPublic = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
                 Text("Attach Images (optional)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
                 SizedBox(height: 6),
                 ElevatedButton.icon(

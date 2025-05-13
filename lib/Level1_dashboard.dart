@@ -1,15 +1,20 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'Level1_newgrievance.dart';
 import 'AssignToLevel2Page.dart';
+import 'logvisit.dart';
 import 'profile.dart';
 import 'ATRverify.dart';
 import 'storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
-import 'package:http/http.dart';
+
 import 'refreshtoken.dart';
 import 'Level1_DisplayAssignedGrievance.dart';
 import 'L1officer_notifications.dart';
@@ -47,10 +52,11 @@ class _GrievanceDashboardState extends State<GrievanceDashboard> {
   String userName = "";
   String user_id = "";
 
+
   final List<Widget> _pages = [
     HomePage(),
-    DummyPage("Feed"),
-    DummyPage("History"),
+    // DummyPage("Feed"),
+    // DummyPage("History"),
     ProfileScreen(),
   ];
 
@@ -74,8 +80,8 @@ class _GrievanceDashboardState extends State<GrievanceDashboard> {
         elevation: 10,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.feed), label: "Feed"),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+          // BottomNavigationBarItem(icon: Icon(Icons.feed), label: "Feed"),
+          // BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
@@ -93,11 +99,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String userName = "";
   String user_id = "";
+  String location = "Fetching location...";
+  int newGrievanceCount = 0;
+  int assignedGrievanceCount = 0;
+  int returnedGrievanceCount = 0;
+  int atrReportCount = 0;
+  int disposedGrievanceCount = 0;
+  int notificationCount = 0;
 
   @override
   void initState() {
     super.initState();
-    fetchDashboardData();
+    fetchDashboardData().then((_) => _getLocation());
+    fetchLatestGrievances();
+    _fetchCounts();
   }
 
   Future<void> fetchDashboardData() async {
@@ -147,6 +162,113 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _getLocation() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    if (placemarks.isNotEmpty) {
+      setState(() => location = placemarks[0].locality ?? "Unknown city");
+    }
+    await logDashboardVisit(user_id, location);
+  }
+
+  Future<int> fetchNewGrievanceCount() async {
+    return await _fetchCountFromAPI("$baseURL/get_New_Grievance_Count");
+  }
+
+  Future<int> fetchAssignedGrievanceCount() async {
+    return await _fetchCountFromAPI("$baseURL/getAssignedGrievanceCount");
+  }
+
+  Future<int> fetchReturnedGrievanceCount() async {
+    return await _fetchCountFromAPI("$baseURL/get_returned_count");
+  }
+
+  Future<int> fetchATRReportCount() async {
+    return await _fetchCountFromAPI("$baseURL/getATRL1count");
+  }
+
+  Future<int> fetchDisposedGrievanceCount() async {
+    return await _fetchCountFromAPI("$baseURL/get_disposed_count");
+  }
+
+  Future<int> fetchNotificationCount() async {
+    return await _fetchCountFromAPI("$baseURL/displayL1notifcount");
+  }
+
+  Future<int> _fetchCountFromAPI(String url) async {
+    String? token = await SecureStorage.getAccessToken();
+    final uri = Uri.parse(url);
+    http.Client client = http.Client();
+
+    try {
+      var response = await client.get(
+        uri,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 401) {
+        bool refreshed = await refreshToken();
+        if (refreshed) {
+          token = await SecureStorage.getAccessToken();
+          response =
+          await client.get(uri, headers: {"Authorization": "Bearer $token"});
+        } else {
+          print("Session expired. Please log in again.");
+          return 0;
+        }
+      }
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['count'] ?? 0;
+      } else {
+        print("Failed to fetch count from $url");
+        return 0;
+      }
+    } catch (e) {
+      print("Error: $e");
+      return 0;
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _fetchCounts() async {
+    newGrievanceCount = await fetchNewGrievanceCount();
+    assignedGrievanceCount = await fetchAssignedGrievanceCount();
+    returnedGrievanceCount = await fetchReturnedGrievanceCount();
+    atrReportCount = await fetchATRReportCount();
+    disposedGrievanceCount = await fetchDisposedGrievanceCount();
+    notificationCount = await fetchNotificationCount();
+    setState(() {});
+  }
+
+  Future<List<Grievance>> fetchLatestGrievances() async {
+    String? token = await SecureStorage.getAccessToken();
+    final response = await http.get(Uri.parse('$baseURL/displayL_G'),
+        headers: {"Authorization": "Bearer $token"});
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((item) => Grievance.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load grievances');
+    }
+  }
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,16 +281,48 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {},
           color: Colors.black,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
-            },
-            color: Colors.black,
-          ),
-          const SizedBox(width: 8),
-        ],
+          actions: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelReminderPage()));
+                  },
+                  color: Colors.black,
+                ),
+                if (notificationCount > 0)
+                  Positioned(
+                    right: -1,  // Adjust this value to move horizontally
+                    top: -1,    // Adjust this value to move vertically
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$notificationCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 8),
+          ],
+
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -177,6 +331,7 @@ class _HomePageState extends State<HomePage> {
             'Hello, $userName',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
+          Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 16),
           TextField(
             decoration: InputDecoration(
@@ -194,26 +349,44 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 24),
 
           // Trending section
-          const Text(
-            'Latest Grievance',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: PageView(
-              controller: PageController(viewportFraction: 0.9),
-              children: const [
-                _TrendingCard(
-                  title: 'Govt Announced Free Electricity',
-                  date: 'Apr 08, 2025',
-                ),
-                _TrendingCard(
-                  title: 'New Digital Complaint Process Launched',
-                  date: 'Apr 07, 2025',
-                ),
-              ],
-            ),
+          FutureBuilder<List<Grievance>>(
+            future: fetchLatestGrievances(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Text('No grievances found');
+              }
+
+              final grievances = snapshot.data!;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Latest Grievance',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 120,
+                    child: PageView(
+                      controller: PageController(viewportFraction: 0.9),
+                      children: grievances.map((g) {
+                        return _TrendingCard(
+                          title: g.title,
+                          grievanceId: g.grievanceId,
+                          description: g.description,
+                          date: DateFormat('MMM dd, yyyy').format(g.createdAt),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 28),
 
@@ -223,64 +396,71 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.5,
-            children: [
-              _ServiceCard(
-                icon: Icons.report,
-                label: "New Grievance",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NewGrievancePage()),
-                ),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.5,
+          children: [
+            _ServiceCard(
+              icon: Icons.report,
+              label: "New Grievance",
+              count: newGrievanceCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NewGrievancePage()),
               ),
-              _ServiceCard(
-                icon: Icons.assignment,
-                label: "Assign Grievance",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AssignToLevel2Page()),
-                ),
+            ),
+            _ServiceCard(
+              icon: Icons.assignment,
+              label: "Assign Grievance",
+              count: newGrievanceCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AssignToLevel2Page()),
               ),
-              _ServiceCard(
-                icon: Icons.assignment_return,
-                label: "Returned",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DummyPage("Rejected")),
-                ),
+            ),
+            _ServiceCard(
+              icon: Icons.assignment_return,
+              label: "Returned",
+              count: returnedGrievanceCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DummyPage("Rejected")),
               ),
-              _ServiceCard(
-                icon: Icons.fact_check,
-                label: "ATR Report",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ATRReportPage()),
-                ),
+            ),
+            _ServiceCard(
+              icon: Icons.fact_check,
+              label: "ATR Review",
+              count: atrReportCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ATRReportPage()),
               ),
-              _ServiceCard(
-                icon: Icons.task,
-                label: "Assigned",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AssignedGrievancePage()),
-                ),
+            ),
+            _ServiceCard(
+              icon: Icons.task,
+              label: "Assigned",
+              count: assignedGrievanceCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AssignedGrievancePage()),
               ),
-              _ServiceCard(
-                icon: Icons.verified,
-                label: "Disposed",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DummyPage("Disposed")),
-                ),
+            ),
+            _ServiceCard(
+              icon: Icons.verified,
+              label: "Disposed",
+              count: disposedGrievanceCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DummyPage("Disposed")),
               ),
-            ],
-          ),
+            ),
+          ],
+
+        ),
           const SizedBox(height: 30),
         ],
       ),
@@ -290,33 +470,67 @@ class _HomePageState extends State<HomePage> {
 
 
 // Trending Card
+class Grievance {
+  final String grievanceId;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+
+  Grievance({
+    required this.grievanceId,
+    required this.title,
+    required this.description,
+    required this.createdAt,
+  });
+
+  factory Grievance.fromJson(Map<String, dynamic> json) {
+    return Grievance(
+      grievanceId: json['grievance_id'],
+      title: json['title'],
+      description: json['description'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
+
+
+// Trending Card
 class _TrendingCard extends StatelessWidget {
   final String title;
+  final String description;
+  final String grievanceId;
   final String date;
-  const _TrendingCard({required this.title, required this.date});
+  const _TrendingCard({required this.title, required this.description, required this.grievanceId, required this.date});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.blue.shade50,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              "$title ($grievanceId)",
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
+            Text(description, style: TextStyle(
+              fontSize: 12,
+              height: 1.0,
+            ),),
+
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -335,11 +549,13 @@ class _TrendingCard extends StatelessWidget {
 class _ServiceCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final int count;
   final VoidCallback onTap;
 
   const _ServiceCard({
     required this.icon,
     required this.label,
+    required this.count,
     required this.onTap,
   });
 
@@ -355,12 +571,42 @@ class _ServiceCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.blue.shade800, size: 30),
+              Stack(
+                alignment: Alignment.topRight,
+                clipBehavior: Clip.none,  // Allow overflow
+                children: [
+                  Icon(icon, color: Colors.blue.shade800, size: 40),
+                  if (count > 0)
+                    Positioned(
+                      right: -4,    // Changed from -10 to -4 to make it visible
+                      top: -4,      // Changed from -10 to -4 to make it visible
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 6),
               Text(
                 label,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -369,6 +615,7 @@ class _ServiceCard extends StatelessWidget {
     );
   }
 }
+
 
 // Placeholder Page
 class DummyPage extends StatelessWidget {
