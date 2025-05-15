@@ -78,7 +78,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void navigateToHomePage() {
+  void navigateToHomePage() async{
+
+    final prefs = await SharedPreferences.getInstance();
+    bool? isLoggedIn = prefs.getBool("isLoggedIn");
+  print("isLoggedIn: $isLoggedIn");
+  print("Inside navigate to home");
+    // Prevent navigation if not logged in
+    if (isLoggedIn == null || !isLoggedIn) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
+      return;
+    }
     if (role_id == "3") {
       Navigator.pushReplacement(
         context,
@@ -217,24 +227,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> logout(BuildContext context) async {
-    String? token = await SecureStorage.getAccessToken();
+  Future<void> logout() async {
+
     final response = await http.post(
       Uri.parse("$baseURL/logout"),
-      headers: {"Authorization": "Bearer $token"},
+
     );
 
     if (response.statusCode == 200 || response.statusCode == 204) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool("isLoggedIn", false);
-
+      await prefs.remove("role_id");
       await SecureStorage.clearToken();
-      showCustomSnackBar(context, "Logout Successful!");
-      // await Future.delayed(Duration(milliseconds: 400));
-      Navigator.push(context,
-          MaterialPageRoute(builder: (context) => LoginPage()));
+      print("cleared all the tokens");
+
+      // 🎯 Show Snackbar and wait for it to be visible before navigating
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logout Successful!')),
+      );
+
+      /// Wait for the Snackbar to appear (300ms)
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      /// 🎯 Clear the stack and navigate to Login Page
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => FirstPage()),
+            (Route<dynamic> route) => false,
+      );
+
+      print("✅ Successfully navigated to Login Page and cleared stack.");
     } else {
-      showCustomSnackBar(context, "Logout failed!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logout failed!')),
+      );
+      print("❌ Logout failed with status code: ${response.statusCode}");
     }
   }
 
@@ -381,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await SecureStorage.clearToken();
-              navigateToHomePage();
+              logout();
             },
             child: const Text("Logout"),
           ),

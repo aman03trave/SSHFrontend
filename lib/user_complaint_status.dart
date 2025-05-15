@@ -77,48 +77,54 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget buildComplaintCard(Map<String, dynamic> complaint) {
-    final imagePath = complaint['media']?['image'];
-    final imageUrl = imagePath != null && imagePath.isNotEmpty
-        ? "$baseURL/$imagePath"
-        : '';
+    // Fetch the first image if available
+    final List<dynamic> images = complaint['media']?['images'] ?? [];
+    final imageUrl = images.isNotEmpty ? "$baseURL/${images[0]}" : '';
 
     return GestureDetector(
-        onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => GrievanceDetailPage(complaint: complaint),
-        ),
-      );
-    },
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GrievanceDetailPage(complaint: complaint),
+          ),
+        );
+      },
       child: Card(
-
-      margin: const EdgeInsets.all(10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Container(
-            height: 200,
-            width: double.infinity,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Center(child: Icon(Icons.broken_image, size: 50)),
-                );
-              },
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            if (imageUrl.isNotEmpty)
+              Container(
+                height: 200,
+                width: double.infinity,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                          child: Icon(Icons.broken_image, size: 50)),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                height: 200,
+                color: Colors.grey[300],
+                child: const Center(child: Icon(Icons.broken_image, size: 50)),
+              ),
+            ListTile(
+              title: Text(complaint["title"] ?? "No Title"),
+              subtitle: Text(complaint["description"] ?? "No Description"),
             ),
-          ),
-          ListTile(
-            title: Text(complaint["title"] ?? "No Title"),
-            subtitle: Text(complaint["description"] ?? "No Description"),
-          ),
-        ],
+          ],
+        ),
       ),
-      )
     );
   }
 
@@ -166,6 +172,8 @@ class _DashboardState extends State<Dashboard> {
       appBar: AppBar(title: const Text("Dashboard")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : filteredGrievances.isEmpty
+          ? const Center(child: Text("No grievances found."))
           : ListView.builder(
         itemCount: filteredGrievances.length,
         itemBuilder: (context, index) =>

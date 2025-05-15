@@ -156,16 +156,18 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls = widget.complaint['media']?['image'];
-    final documentUrls = widget.complaint['media']?['document'];
+    final imageUrls = widget.complaint['media']?['images'];
+    final documentUrls = widget.complaint['media']?['documents'];
 
-    final List<String> images = imageUrls is String ? [imageUrls] : List<String>.from(imageUrls ?? []);
-    final List<String> documents = documentUrls is String ? [documentUrls] : List<String>.from(documentUrls ?? []);
+    final List<String> images = List<String>.from(imageUrls ?? []);
+    final List<String> documents = List<String>.from(documentUrls ?? []);
 
     return Scaffold(
       appBar: AppBar(title: Text("${widget.complaint["title"]} (${widget.complaint["grievance_id"]})")),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
+          : widget.complaint.isEmpty
+          ? Center(child: Text("No grievance found."))
           : SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -224,10 +226,7 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
                     leading: Icon(Icons.timeline, color: Colors.blue),
-                    title:
-                    // Text(getStatusMessage(log)),
-
-                    Row(
+                    title: Row(
                       children: [
                         Expanded(
                           child: Text(
@@ -245,13 +244,6 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
                         ),
                       ],
                     ),
-                    // subtitle: Column(
-                    //   crossAxisAlignment: CrossAxisAlignment.start,
-                    //   children: [
-                    //     Text("Officer: ${log['officer_name']}"),
-                    //     // Text("Date: ${DateTime.parse(log['action_timestamp']).toLocal()}"),
-                    //   ],
-                    // ),
                   ),
                 );
               }).toList(),
@@ -262,4 +254,5 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
       ),
     );
   }
+
 }

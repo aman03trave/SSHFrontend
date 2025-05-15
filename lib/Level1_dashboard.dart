@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'Level1_newgrievance.dart';
 import 'AssignToLevel2Page.dart';
+import 'getGrievanceById.dart';
 import 'logvisit.dart';
 import 'profile.dart';
 import 'ATRverify.dart';
@@ -18,6 +19,10 @@ import 'config.dart';
 import 'refreshtoken.dart';
 import 'Level1_DisplayAssignedGrievance.dart';
 import 'L1officer_notifications.dart';
+import 'L1_atr_review.dart';
+import 'returned_grievance.dart';
+import 'disposed_grievances.dart';
+
 void main() {
   runApp(const GrievanceApp());
 }
@@ -265,6 +270,43 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  final TextEditingController _searchController = TextEditingController();
+  Future<void> _fetchGrievanceById(String grievanceId) async {
+    var token = await SecureStorage.getAccessToken();
+    print(grievanceId);
+    var url = Uri.parse('$baseURL/get_grievance_idl1?grievance_id=$grievanceId');
+    var response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    });
+
+    // if(response.statusCode == 401){
+    //   bool refreshed = await refreshToken();
+    //   if (refreshed) {
+    //     token = await SecureStorage.getAccessToken();
+    //     response = await http.get(url, headers: {
+    //       'Authorization': 'Bearer $token',
+    //       'Content-Type': 'application/json'
+    //     });
+    //         }
+    // }
+
+    if (response.statusCode == 200) {
+      final grievanceData = jsonDecode(response.body);
+      Navigator.push(context, MaterialPageRoute(builder: (_) => GetGrievanceById(grievanceData: grievanceData)));
+    } else {
+      final error = jsonDecode(response.body);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(error['message'] ?? 'Failed to fetch grievance.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        ),
+      );
+    }
+  }
+
 
 
 
@@ -334,16 +376,20 @@ class _HomePageState extends State<HomePage> {
           Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 16),
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by title, date or status...',
-              prefixIcon: const Icon(Icons.search),
-              fillColor: Colors.white,
+              hintText: 'Search Grievance ID',
               filled: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward),
+                onPressed: () {
+                  final id = _searchController.text.trim();
+                  if (id.isNotEmpty) _fetchGrievanceById(id);
+                },
               ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 24),
@@ -428,7 +474,7 @@ class _HomePageState extends State<HomePage> {
               count: returnedGrievanceCount,
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const DummyPage("Rejected")),
+                MaterialPageRoute(builder: (context) => ReturnedGrievancePage()),
               ),
             ),
             _ServiceCard(
@@ -437,7 +483,7 @@ class _HomePageState extends State<HomePage> {
               count: atrReportCount,
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ATRReportPage()),
+                MaterialPageRoute(builder: (context) => ATRReviewListPage()),
               ),
             ),
             _ServiceCard(
@@ -455,7 +501,7 @@ class _HomePageState extends State<HomePage> {
               count: disposedGrievanceCount,
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const DummyPage("Disposed")),
+                MaterialPageRoute(builder: (context) => DisposedGrievancesPage()),
               ),
             ),
           ],
