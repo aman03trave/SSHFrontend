@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'Level1_dashboard.dart';
 import 'storage_service.dart';
 import 'config.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -54,8 +55,9 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
     try {
       bool permissionGranted = await requestStoragePermission();
       if (!permissionGranted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Storage permission denied")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Storage permission denied")),
+        );
         return;
       }
 
@@ -63,7 +65,9 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
           ? (await getExternalStorageDirectory())!
           : await getApplicationDocumentsDirectory();
 
-      String fileName = url.split('/').last;
+      String fileName = url
+          .split('/')
+          .last;
       String filePath = "${directory.path}/$fileName";
 
       Dio dio = Dio();
@@ -80,11 +84,15 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
     if (Platform.isAndroid) {
       if (await Permission.storage.isGranted) return true;
 
-      if (await Permission.storage.request().isGranted) {
+      if (await Permission.storage
+          .request()
+          .isGranted) {
         return true;
       }
 
-      if (await Permission.manageExternalStorage.request().isGranted) {
+      if (await Permission.manageExternalStorage
+          .request()
+          .isGranted) {
         return true;
       }
 
@@ -142,30 +150,45 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ATR Reviews', style: TextStyle(color: Colors.white),),
-        backgroundColor: Colors.indigo,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: atrReviews.length,
-        itemBuilder: (context, index) {
-          final data = atrReviews[index];
-          return ATRReviewCard(
-            data: data,
-            onSubmit: submitReview,
-            onViewDocument: (String documentPath) {
-              final fullUrl = "$baseURL/$documentPath";
-              downloadAndOpenDocument(fullUrl, context);
-            },
-          );
-        },
+    return WillPopScope(
+      onWillPop: () async {
+        await GrievanceDashboard(); // <-- Refresh the data before going back
+        return true; // <-- Allow back navigation
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('ATR Reviews', style: TextStyle(color: Colors.white)),
+          leading: Navigator.canPop(context)
+              ? IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          )
+              : null,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          backgroundColor: Colors.indigo,
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: atrReviews.length,
+          itemBuilder: (context, index) {
+            final data = atrReviews[index];
+            return ATRReviewCard(
+              data: data,
+              onSubmit: submitReview,
+              onViewDocument: (String documentPath) {
+                final fullUrl = "$baseURL/$documentPath";
+                downloadAndOpenDocument(fullUrl, context);
+              },
+            );
+          },
+        ),
       ),
     );
   }
+
 }
 
 class ATRReviewCard extends StatefulWidget {
@@ -184,6 +207,35 @@ class ATRReviewCard extends StatefulWidget {
   _ATRReviewCardState createState() => _ATRReviewCardState();
 }
 
+class ATRItem {
+  final int version;
+  final List<String> documents;
+
+  ATRItem({
+    required this.version,
+    required this.documents,
+  });
+
+  factory ATRItem.fromJson(Map<String, dynamic> json) {
+    // ✅ Safely extract the version from the list or default to 1
+    int parsedVersion;
+    if (json['version'] is List && json['version'].isNotEmpty) {
+      parsedVersion = json['version'][0]; // Grab the first element
+    } else {
+      parsedVersion = 1; // Default to 1 if the list is empty or not available
+    }
+
+    return ATRItem(
+      version: parsedVersion,
+      documents: (json['documents'] as List<dynamic>?)
+          ?.map((doc) => "$baseURL/$doc")
+          .toList() ??
+          [],
+    );
+  }
+}
+
+
 class _ATRReviewCardState extends State<ATRReviewCard> {
   bool isExpanded = false;
   String selectedStatus = 'accepted';
@@ -193,6 +245,10 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
+    final actionCodeId = data['latest_action_code_id'];
+
+    // Check if action_code_id is 4 or 5
+    final bool isDisabled = (actionCodeId == 4 || actionCodeId == 5);
 
     return Card(
       elevation: 2,
@@ -215,13 +271,76 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Complainant: ${data['name']}"),
+                Text("Complainant: ${data['officer_name']}"),
                 const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () =>
-                      widget.onViewDocument(data['media']['document']),
-                  child: const Text('View Document'),
-                ),
+
+                // Display Images
+                if (data['grievance_media']['images'].isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Images:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      for (String imageUrl in data['grievance_media']['images'])
+                        GestureDetector(
+                          onTap: () => widget.onViewDocument(imageUrl),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Image.network("$baseURL/$imageUrl", height: 150),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                // Display Documents
+                if (data['grievance_media']['documents'].isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Documents:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      for (String docUrl in data['grievance_media']['documents'])
+                        ListTile(
+                          title: Text(docUrl.split('/').last),
+                          trailing: const Icon(Icons.picture_as_pdf),
+                          onTap: () => widget.onViewDocument(docUrl),
+                        ),
+                    ],
+                  ),
+
+                // Display ATR Versions and Documents
+                if (data['ATR'] != null && data['ATR'].isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('ATR Versions:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      for (var atr in data['ATR'])
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Version ${atr['version'][0]}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            for (var docUrl in atr['documents'])
+                              ListTile(
+                                title: Text(docUrl.split('/').last),
+                                trailing: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
+                                onTap: () {
+                                  print("Document URL: $docUrl");
+                                  final fullUrl = "$baseURL/$docUrl";
+                                  widget.onViewDocument(docUrl);
+                                },
+                              ),
+                            const Divider(),
+                          ],
+                        ),
+                    ],
+                  ),
+
+
                 const SizedBox(height: 12),
                 const Text("Review Decision:"),
                 DropdownButton<String>(
@@ -230,7 +349,7 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
                     DropdownMenuItem(value: 'accepted', child: Text('Accepted')),
                     DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
                   ],
-                  onChanged: (value) {
+                  onChanged: isDisabled ? null : (value) {
                     setState(() {
                       selectedStatus = value!;
                     });
@@ -240,6 +359,7 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
                 TextField(
                   controller: _remarksController,
                   maxLines: 3,
+                  enabled: !isDisabled,
                   decoration: const InputDecoration(
                     labelText: 'Remarks',
                     border: OutlineInputBorder(),
@@ -247,32 +367,20 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: isSubmitting
+                  onPressed: isSubmitting || isDisabled
                       ? null
                       : () async {
-                    // Logging to see if the button is clicked
-                    print("Submit button clicked");
-
                     final grievanceId = data['grievance_id'];
                     final remarks = _remarksController.text;
 
-                    // Validate inputs before calling submit
                     if (grievanceId == null || selectedStatus.isEmpty) {
-                      print("Error: Grievance ID or status is missing");
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Missing Grievance ID or Review Status')),
+                        const SnackBar(content: Text('Missing Grievance ID or Review Status')),
                       );
                       return;
                     }
 
                     setState(() => isSubmitting = true);
-
-                    print("Calling submitReview with:");
-                    print("Grievance ID: $grievanceId");
-                    print("Status: $selectedStatus");
-                    print("Remarks: $remarks");
 
                     await widget.onSubmit(
                       grievanceId,
@@ -286,8 +394,6 @@ class _ATRReviewCardState extends State<ATRReviewCard> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Submit Review'),
                 ),
-
-
               ],
             ),
           ),

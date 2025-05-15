@@ -171,19 +171,16 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
         backgroundColor: const Color(0xFFF4F6FA),
         appBar: AppBar(
           title: const Text("Assign to Level 2"),
-          backgroundColor: const Color(0xFF3366CC),
-          foregroundColor: Colors.white,
-          elevation: 2,
-          leading: IconButton(
+
+          leading: Navigator.canPop(context)
+              ? IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => GrievanceDashboard()),
-                    (Route<dynamic> route) => false,
-              );
-            },
-          ),
+            onPressed: () => Navigator.pop(context),
+          )
+              : null,
+          backgroundColor: const Color(0xFF34A853),
+          foregroundColor: Colors.white,
+          elevation: 0,
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())

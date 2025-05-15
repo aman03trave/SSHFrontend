@@ -60,11 +60,13 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
               'grievance_id': item['grievance_id'],
               'officer_id': item['officer_id'],
               'action_code': item['action_code'],
-              'timestamp': item['action_timestamp'],
+              'timestamp': item['action_timestamp'] ?? item['reminder_timestamp'],
               'title': item['title'],
               'description': item['description'],
               'level1_officer': item['level1officer'],
               'complainant': item['complainant'],
+              'viewed': item['viewed'] ?? false,
+              'type': item['type'],
               'message': generateMessage(item),
             };
           }).toList();
@@ -80,9 +82,14 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
 
   String generateMessage(Map<String, dynamic> item) {
     final code = item['action_code'];
-    final level1 = item['level1officer'];
+    final level1 = item['level1_officer'];
     final complainant = item['complainant'];
     final title = item['title'];
+    final type = item['type'];
+
+    if (type == "Reminder") {
+      return 'Reminder for grievance "$title" raised by $complainant.';
+    }
 
     switch (code) {
       case "Complaint Registered":
@@ -113,6 +120,11 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
     return timeago.format(time);
   }
 
+  Future<void> markAsViewed(String grievanceId) async {
+    // Call your backend to mark the reminder as viewed
+    print('Marked grievance $grievanceId as viewed');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,8 +153,12 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 2,
-            color: const Color(0xFFEAF3FF),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: item['type'] == "Reminder"
+                ? Colors.orange[100]
+                : const Color(0xFFEAF3FF),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -171,6 +187,23 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
                     item['message'],
                     style: const TextStyle(fontSize: 12),
                   ),
+                  if (item['type'] == "Reminder" && item['viewed'] == false)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await markAsViewed(item['grievance_id']);
+                          setState(() {
+                            notifications[index]['viewed'] = true;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Mark as Viewed'),
+                      ),
+                    ),
                 ],
               ),
             ),

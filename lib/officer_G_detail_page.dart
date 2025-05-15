@@ -208,6 +208,14 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
             .complaint["grievance_id"]})",
             style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        )
+            : null,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
