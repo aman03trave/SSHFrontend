@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
+import 'package:ssh/officer_G_detail_page.dart';
 
 void main() {
   runApp(const MaterialApp(home: NewGrievancePage()));
@@ -108,12 +109,21 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GrievanceDetailPage(item: item),
+                              builder: (_) => GrievanceDetailPage(complaint: {
+                                "grievance_id": item.grievanceId,
+                                "title": item.title,
+                                "description": item.description,
+                                "block_name": item.blockName,
+                                "school_name": item.schoolName,
+                                "name": item.complainantName,
+                                "grievance_media": item.grievanceMedia,
+                              }),
                             ),
                           );
                         },
                         child: _GrievanceTile(item: item, index: index),
                       );
+
                     },
                   );
                 },
@@ -129,6 +139,7 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
 enum GrievanceStatus { completed, inProgress, pending }
 
 class GrievanceItem {
+  final String grievanceId;
   final String title;
   final String complainantName;
   final String blockName;
@@ -136,8 +147,10 @@ class GrievanceItem {
   final String duration;
   final GrievanceStatus status;
   final String description;
+  final Map<String, dynamic> grievanceMedia;
 
   GrievanceItem({
+    required this.grievanceId,
     required this.title,
     required this.complainantName,
     required this.blockName,
@@ -145,10 +158,12 @@ class GrievanceItem {
     required this.duration,
     required this.status,
     required this.description,
+    required this.grievanceMedia,
   });
 
   factory GrievanceItem.fromJson(Map<String, dynamic> json) {
     return GrievanceItem(
+      grievanceId: json['grievance_id'] ?? '',
       title: json['title'] ?? '',
       complainantName: json['name'] ?? 'Unknown',
       blockName: json['block_name'] ?? 'Unknown Block',
@@ -156,6 +171,7 @@ class GrievanceItem {
       duration: _formatDuration(json['created_at']),
       status: GrievanceStatus.pending, // You can update based on your backend
       description: json['description'] ?? '',
+      grievanceMedia: json['grievance_media'] ?? {},
     );
   }
 
@@ -169,6 +185,7 @@ class GrievanceItem {
     return '${diff.inDays} days ago';
   }
 }
+
 
 class _GrievanceTile extends StatelessWidget {
   final GrievanceItem item;
@@ -223,61 +240,61 @@ class _GrievanceTile extends StatelessWidget {
   }
 }
 
-class GrievanceDetailPage extends StatelessWidget {
-  final GrievanceItem item;
-
-  const GrievanceDetailPage({super.key, required this.item});
-
-  String getStatusText(GrievanceStatus status) {
-    switch (status) {
-      case GrievanceStatus.completed:
-        return "Completed";
-      case GrievanceStatus.inProgress:
-        return "In Progress";
-      case GrievanceStatus.pending:
-        return "Pending";
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Grievance Details"),
-        backgroundColor: const Color(0xFF4285F4),
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Text("👤 Complainant: ${item.complainantName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 4),
-            Text("🏫 School: ${item.schoolName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 4),
-            Text("📍 Block: ${item.blockName}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            Text("🕒 Submitted: ${item.duration}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            Text("📌 Status: ${getStatusText(item.status)}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 20),
-            const Text(
-              "Description",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.description,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// class GrievanceDetailPage extends StatelessWidget {
+//   final GrievanceItem item;
+//
+//   const GrievanceDetailPage({super.key, required this.item});
+//
+//   String getStatusText(GrievanceStatus status) {
+//     switch (status) {
+//       case GrievanceStatus.completed:
+//         return "Completed";
+//       case GrievanceStatus.inProgress:
+//         return "In Progress";
+//       case GrievanceStatus.pending:
+//         return "Pending";
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Grievance Details"),
+//         backgroundColor: const Color(0xFF4285F4),
+//         foregroundColor: Colors.white,
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(24.0),
+//         child: Column(
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+//             const SizedBox(height: 12),
+//             Text("👤 Complainant: ${item.complainantName}", style: const TextStyle(fontSize: 16)),
+//             const SizedBox(height: 4),
+//             Text("🏫 School: ${item.schoolName}", style: const TextStyle(fontSize: 16)),
+//             const SizedBox(height: 4),
+//             Text("📍 Block: ${item.blockName}", style: const TextStyle(fontSize: 16)),
+//             const SizedBox(height: 8),
+//             Text("🕒 Submitted: ${item.duration}", style: const TextStyle(fontSize: 16)),
+//             const SizedBox(height: 8),
+//             Text("📌 Status: ${getStatusText(item.status)}", style: const TextStyle(fontSize: 16)),
+//             const SizedBox(height: 20),
+//             const Divider(),
+//             const SizedBox(height: 20),
+//             const Text(
+//               "Description",
+//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+//             ),
+//             const SizedBox(height: 10),
+//             Text(
+//               item.description,
+//               style: const TextStyle(fontSize: 14, color: Colors.black87),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

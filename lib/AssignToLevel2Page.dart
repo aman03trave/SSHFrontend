@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'storage_service.dart';
 import 'config.dart';
 import 'refreshtoken.dart';
+import 'Level1_dashboard.dart';
 
 void main() {
   runApp(const MaterialApp(home: AssignToLevel2Page()));
@@ -146,7 +147,10 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
 
     if (response.statusCode == 200) {
       showCustomSnackBar(context, "Grievance Assigned");
-      setState(() {});
+      setState(() {}
+
+      );
+      loadData();
     } else {
       throw Exception('Failed to assign grievance');
     }
@@ -154,71 +158,56 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
-      appBar: AppBar(
-        title: const Text("Assign to Level 2"),
-        backgroundColor: const Color(0xFF3366CC),
-        foregroundColor: Colors.white,
-        elevation: 2,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // const Text("Level 2 Officers", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            // const SizedBox(height: 10),
-            // Table(
-            //   border: TableBorder.all(),
-            //   columnWidths: const {
-            //     0: FractionColumnWidth(0.7),
-            //     1: FractionColumnWidth(0.3),
-            //   },
-            //   children: [
-            //     const TableRow(
-            //       children: [
-            //         Padding(
-            //           padding: EdgeInsets.all(8.0),
-            //           child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
-            //         ),
-            //         Padding(
-            //           padding: EdgeInsets.all(8.0),
-            //           child: Text('Grievance Count', style: TextStyle(fontWeight: FontWeight.bold)),
-            //         ),
-            //       ],
-            //     ),
-            //     ...officerDataList.map((officer) => TableRow(
-            //       children: [
-            //         Padding(
-            //           padding: const EdgeInsets.all(8.0),
-            //           child: Text(officer['name'] ?? ''),
-            //         ),
-            //         Padding(
-            //           padding: const EdgeInsets.all(8.0),
-            //           child: Text(officer['grievance_count'].toString()),
-            //         ),
-            //       ],
-            //     ))
-            //   ],
-            // ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.separated(
-                itemCount: grievances.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  return GrievanceAssignCard(
-                    item: grievances[index],
-                    officerMap: officerNameToId,
-                    onAssign: assignGrievance,
-                    backgroundColor: cardColors[index % cardColors.length],
-                  );
-                },
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+              (Route<dynamic> route) => false,
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6FA),
+        appBar: AppBar(
+          title: const Text("Assign to Level 2"),
+          backgroundColor: const Color(0xFF3366CC),
+          foregroundColor: Colors.white,
+          elevation: 2,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+                    (Route<dynamic> route) => false,
+              );
+            },
+          ),
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: grievances.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    return GrievanceAssignCard(
+                      item: grievances[index],
+                      officerMap: officerNameToId,
+                      onAssign: assignGrievance,
+                      backgroundColor: cardColors[index % cardColors.length],
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

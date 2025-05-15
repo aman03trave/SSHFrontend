@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'getGrievanceById.dart';
 import 'profile.dart';
 import 'storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,8 @@ import 'Level2_NewAssignedGrievance.dart';
 import 'Level2_AcceptedGrievance.dart';
 import 'L2officer_notifications.dart';
 import 'logvisit.dart';
+import 'disposed_grievances.dart';
+import 'returned_grievance.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -205,7 +208,41 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  final TextEditingController _searchController = TextEditingController();
+  Future<void> _fetchGrievanceById(String grievanceId) async {
+    var token = await SecureStorage.getAccessToken();
+    var url = Uri.parse('$baseURL/get_grievance_idl2?grievance_id=$grievanceId');
+    var response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    });
 
+    // if(response.statusCode == 401){
+    //   bool refreshed = await refreshToken();
+    //   if (refreshed) {
+    //     token = await SecureStorage.getAccessToken();
+    //     response = await http.get(url, headers: {
+    //       'Authorization': 'Bearer $token',
+    //       'Content-Type': 'application/json'
+    //     });
+    //         }
+    // }
+
+    if (response.statusCode == 200) {
+      final grievanceData = jsonDecode(response.body);
+      Navigator.push(context, MaterialPageRoute(builder: (_) => GetGrievanceById(grievanceData: grievanceData)));
+    } else {
+      final error = jsonDecode(response.body);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(error['message'] ?? 'Failed to fetch grievance.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        ),
+      );
+    }
+  }
 
   @override
   @override
@@ -272,16 +309,20 @@ class _HomePageState extends State<HomePage> {
           Text(location, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600])),
           const SizedBox(height: 16),
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by title, date or status...',
-              prefixIcon: const Icon(Icons.search),
-              fillColor: Colors.white,
+              hintText: 'Search Grievance ID',
               filled: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward),
+                onPressed: () {
+                  final id = _searchController.text.trim();
+                  if (id.isNotEmpty) _fetchGrievanceById(id);
+                },
               ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 24),
@@ -368,7 +409,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const DummyPage("Rejected")),
+                          builder: (context) => ReturnedGrievancePage()),
                     ),
               ),
               _ServiceCard(
@@ -378,7 +419,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const DummyPage("Disposed")),
+                          builder: (context) => DisposedGrievancesPage()),
                     ),
               ),
             ],

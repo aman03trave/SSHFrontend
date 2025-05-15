@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'storage_service.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
+import 'officer_G_detail_page.dart';
 
 void main() {
   runApp(const MaterialApp(home: Level2_NewGrievancePage()));
@@ -109,7 +111,15 @@ class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GrievanceDetailPage(item: item),
+                              builder: (_) => GrievanceDetailPage(complaint: {
+                                "grievance_id": item.grievanceId,
+                                "title": item.title,
+                                "description": item.description,
+                                "block_name": item.blockName,
+                                "school_name": item.schoolName,
+                                "name": item.complainantName,
+                                "grievance_media": item.grievanceMedia,
+                              }),
                             ),
                           );
                         },
@@ -130,34 +140,42 @@ class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
 enum GrievanceStatus { completed, inProgress, pending }
 
 class GrievanceItem {
+  final String grievanceId;
   final String title;
-  final String grievance_id;
-  final String assigned_by;
-  final String assigned_at;
+  final String complainantName;
+  final String blockName;
+  final String schoolName;
+  final String duration;
+  final GrievanceStatus status;
   final String description;
-  final String? imageUrl;
-  final String? documentUrl;
+  final String assigned_at;
+  final Map<String, dynamic> grievanceMedia;
 
   GrievanceItem({
+    required this.grievanceId,
     required this.title,
-    required this.grievance_id,
-    required this.assigned_at,
-    required this.assigned_by,
+    required this.complainantName,
+    required this.blockName,
+    required this.schoolName,
+    required this.duration,
+    required this.status,
     required this.description,
-    this.imageUrl,
-    this.documentUrl,
+    required this.grievanceMedia,
+    required this.assigned_at
   });
 
   factory GrievanceItem.fromJson(Map<String, dynamic> json) {
-    final media = json['media'] ?? {};
     return GrievanceItem(
-      grievance_id: json['grievance_id'] ?? '',
+      grievanceId: json['grievance_id'] ?? '',
       title: json['title'] ?? '',
+      complainantName: json['name'] ?? 'Unknown',
+      blockName: json['block_name'] ?? 'Unknown Block',
+      schoolName: json['school_name'] ?? 'Unknown School',
+      duration: _formatDuration(json['created_at']),
+      status: GrievanceStatus.pending, // You can update based on your backend
       description: json['description'] ?? '',
-      assigned_by: json['assigned_by'] ?? 'Unknown',
-      assigned_at: _formatDuration(json['assigned_at'] ?? ''),
-      imageUrl: media['image'] != null ? "$baseURL/${media['image']}" : null,
-      documentUrl: media['document'] != null ? "$baseURL/${media['document']}" : null,
+      grievanceMedia: json['grievance_media'] ?? {},
+      assigned_at: json['assigned_at'] ?? ''
     );
   }
 
@@ -177,6 +195,10 @@ class GrievanceItem {
   }
 }
 
+String formatDate(String dateStr) {
+  final DateTime parsedDate = DateTime.parse(dateStr);
+  return DateFormat('dd/MM/yyyy').format(parsedDate);
+}
 
 class _GrievanceTile extends StatelessWidget {
   final GrievanceItem item;
@@ -211,12 +233,12 @@ class _GrievanceTile extends StatelessWidget {
           Text(item.description),
           const SizedBox(height: 6),
           Text(
-            "👤 ${item.assigned_by}",
+            "👤 Assigned By: ${item.complainantName}",
             style: const TextStyle(fontSize: 13, color: Colors.black87),
           ),
           const SizedBox(height: 6),
           Text(
-            "🕒 ${item.assigned_at}",
+            "🕒 Assigned On: ${formatDate(item.assigned_at)}",
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -225,121 +247,121 @@ class _GrievanceTile extends StatelessWidget {
   }
 }
 
-class GrievanceDetailPage extends StatelessWidget {
-  final GrievanceItem item;
-
-  const GrievanceDetailPage({super.key, required this.item});
-
-  Future<void> postGrievanceAction(String grievanceId, int actionCodeId) async {
-    var token = await SecureStorage.getAccessToken();
-    var response = await http.post(
-      Uri.parse("$baseURL/addAction"),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'grievance_id': grievanceId,
-        'action_code_id': actionCodeId,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      print("Action submitted successfully.");
-    } else {
-      print("Failed to submit action: ${response.body}");
-      throw Exception("Failed to submit action.");
-    }
-  }
-
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Grievance Details"),
-        backgroundColor: const Color(0xFF4285F4),
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.title,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Text("Description: ${item.description}"),
-              const SizedBox(height: 8),
-              Text("👤 Assigned By: ${item.assigned_by}",
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text("🕒 Assigned: ${item.assigned_at}",
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 20),
-              if (item.imageUrl != null) ...[
-                const Text("Attached Image:",
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 10),
-                Image.network(item.imageUrl!, height: 200),
-                const SizedBox(height: 20),
-              ],
-              if (item.documentUrl != null) ...[
-                const Text("Attached Document:",
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 10),
-                Image.network(item.documentUrl!, height: 200),
-                const SizedBox(height: 20),
-              ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.check_circle_outline),
-                    onPressed: () async {
-                      try {
-                        await postGrievanceAction(item.grievance_id, 9); // Accepted
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Grievance Accepted")),
-                        );
-                        Navigator.pop(context);
-                      } catch (_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Failed to accept grievance")),
-                        );
-                      }
-                    },
-                    label: const Text("Accept"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.cancel_outlined),
-                    onPressed: () async {
-                      try {
-                        await postGrievanceAction(item.grievance_id, 8); // Rejected
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Grievance Rejected")),
-                        );
-                        Navigator.pop(context);
-                      } catch (_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Failed to reject grievance")),
-                        );
-                      }
-                    },
-                    label: const Text("Reject"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// class GrievanceDetailPage extends StatelessWidget {
+//   final GrievanceItem item;
+//
+//   const GrievanceDetailPage({super.key, required this.item});
+//
+//   Future<void> postGrievanceAction(String grievanceId, int actionCodeId) async {
+//     var token = await SecureStorage.getAccessToken();
+//     var response = await http.post(
+//       Uri.parse("$baseURL/addAction"),
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': 'Bearer $token',
+//       },
+//       body: jsonEncode({
+//         'grievance_id': grievanceId,
+//         'action_code_id': actionCodeId,
+//       }),
+//     );
+//
+//     if (response.statusCode == 200) {
+//       print("Action submitted successfully.");
+//     } else {
+//       print("Failed to submit action: ${response.body}");
+//       throw Exception("Failed to submit action.");
+//     }
+//   }
+//
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Grievance Details"),
+//         backgroundColor: const Color(0xFF4285F4),
+//         foregroundColor: Colors.white,
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(24.0),
+//         child: SingleChildScrollView(
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Text(item.title,
+//                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+//               const SizedBox(height: 12),
+//               Text("Description: ${item.description}"),
+//               const SizedBox(height: 8),
+//               Text("👤 Assigned By: ${item.complainantName}",
+//                   style: const TextStyle(fontSize: 16)),
+//               const SizedBox(height: 8),
+//               Text("🕒 Assigned: ${item.assigned_at}",
+//                   style: const TextStyle(fontSize: 16)),
+//               const SizedBox(height: 20),
+//               if (item.imageUrl != null) ...[
+//                 const Text("Attached Image:",
+//                     style: TextStyle(fontWeight: FontWeight.w600)),
+//                 const SizedBox(height: 10),
+//                 Image.network(item.imageUrl!, height: 200),
+//                 const SizedBox(height: 20),
+//               ],
+//               if (item.documentUrl != null) ...[
+//                 const Text("Attached Document:",
+//                     style: TextStyle(fontWeight: FontWeight.w600)),
+//                 const SizedBox(height: 10),
+//                 Image.network(item.documentUrl!, height: 200),
+//                 const SizedBox(height: 20),
+//               ],
+//               Row(
+//                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//                 children: [
+//                   ElevatedButton.icon(
+//                     icon: const Icon(Icons.check_circle_outline),
+//                     onPressed: () async {
+//                       try {
+//                         await postGrievanceAction(item.grievance_id, 9); // Accepted
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(content: Text("Grievance Accepted")),
+//                         );
+//                         Navigator.pop(context);
+//                       } catch (_) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(content: Text("Failed to accept grievance")),
+//                         );
+//                       }
+//                     },
+//                     label: const Text("Accept"),
+//                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+//                   ),
+//                   ElevatedButton.icon(
+//                     icon: const Icon(Icons.cancel_outlined),
+//                     onPressed: () async {
+//                       try {
+//                         await postGrievanceAction(item.grievance_id, 8); // Rejected
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(content: Text("Grievance Rejected")),
+//                         );
+//                         Navigator.pop(context);
+//                       } catch (_) {
+//                         ScaffoldMessenger.of(context).showSnackBar(
+//                           const SnackBar(content: Text("Failed to reject grievance")),
+//                         );
+//                       }
+//                     },
+//                     label: const Text("Reject"),
+//                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+//                   ),
+//                 ],
+//               ),
+//
+//               const SizedBox(height: 20),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 

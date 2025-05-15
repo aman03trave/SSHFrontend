@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ssh/config.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GetGrievanceById extends StatelessWidget {
   final Map<String, dynamic> grievanceData;
@@ -14,14 +16,14 @@ class GetGrievanceById extends StatelessWidget {
     final createdAt = grievanceData['created_at'] != null
         ? DateFormat.yMMMMd().add_jm().format(DateTime.parse(grievanceData['created_at']))
         : 'Date not available';
+
     final media = grievanceData['media'];
-    final imagePath = media?['image'];
-    final documentPath = media?['document'];
+    final imagePaths = media?['images'] ?? [];
+    final documentPaths = media?['documents'] ?? [];
 
     String normalizePath(String? path) {
       return path?.replaceAll('\\', '/') ?? '';
     }
-
 
     return Scaffold(
       appBar: AppBar(
@@ -41,7 +43,6 @@ class GetGrievanceById extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   const SizedBox(height: 20),
                   _buildSection(label: 'Title', value: title, icon: Icons.title),
                   const Divider(height: 32, color: Colors.grey),
@@ -49,52 +50,84 @@ class GetGrievanceById extends StatelessWidget {
                   const Divider(height: 32, color: Colors.grey),
                   _buildSection(label: 'Created At', value: createdAt, icon: Icons.calendar_today),
                   const Divider(height: 32, color: Colors.grey),
-                  if (imagePath != null && imagePath.isNotEmpty) ...[
+
+                  // ✅ Image Carousel
+                  if (imagePaths.isNotEmpty) ...[
                     const Text(
-                      'Attached Image',
+                      'Attached Images',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
                     ),
                     const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        '$baseURL/${normalizePath(imagePath)}',
+                    CarouselSlider(
+                      items: imagePaths.map<Widget>((path) {
+                        final fullPath = '$baseURL/${normalizePath(path)}';
+                        return GestureDetector(
+                          onTap: () {
+                            // Open full-screen image on tap
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FullScreenImageViewer(imageUrl: fullPath),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              fullPath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => const Text("Failed to load image."),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      options: CarouselOptions(
                         height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Text("Failed to load image."),
+                        enableInfiniteScroll: false,
+                        viewportFraction: 0.8,
+                        enlargeCenterPage: true,
                       ),
                     ),
                     const SizedBox(height: 20),
                   ],
-                  if (documentPath != null && documentPath.isNotEmpty) ...[
+
+                  // ✅ Document List
+                  if (documentPaths.isNotEmpty) ...[
                     const Text(
-                      'Attached Document',
+                      'Attached Documents',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
                     ),
                     const SizedBox(height: 10),
-                    InkWell(
-                      onTap: () {
-                        // You could use `url_launcher` package to open this document
-                        // Example: launchUrl(Uri.parse('http://your-server.com/...'));
-                      },
-                      child: Row(
-                        children: [
-                          const Icon(Icons.picture_as_pdf, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              normalizePath(documentPath).split('/').last,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.blue,
-                                decoration: TextDecoration.underline,
+                    ...documentPaths.map((doc) {
+                      final fullPath = '$baseURL/${normalizePath(doc)}';
+                      return InkWell(
+                        onTap: () async {
+                          if (await canLaunchUrl(Uri.parse(fullPath))) {
+                            await launchUrl(Uri.parse(fullPath), mode: LaunchMode.externalApplication);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Could not open the document.')),
+                            );
+                          }
+                        },
+                        child: Row(
+                          children: [
+                            const Icon(Icons.picture_as_pdf, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                doc.split('/').last,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ],
                 ],
               ),
@@ -128,6 +161,28 @@ class GetGrievanceById extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+class FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageViewer({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 }

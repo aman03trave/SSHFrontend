@@ -49,6 +49,7 @@ class _FirstPageState extends State<FirstPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
     String role_id = prefs.getString("role_id") ?? "";
+    if(!isLoggedIn){ return;}
     if (isLoggedIn ) {
       // Redirect to dashboard if already logged in
       Future.delayed(Duration.zero, () {
@@ -74,6 +75,7 @@ class _FirstPageState extends State<FirstPage> {
         );}
       });
     }
+
   }
 
   void dispose() {
