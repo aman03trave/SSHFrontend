@@ -236,7 +236,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false, // Prevent automatic popping
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => DashboardScreen()),
+          );
+          setState(() {
+            isLoading = true;
+          });
+          await fetchDashboardData();
+          await _getLocation();
+          await fetchNotificationCount();
+          await fetchGrievanceStats();
+          await fetchComplaints();
+        }
+      },
+    child: Scaffold(
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -351,6 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
+    ),
     );
   }
 

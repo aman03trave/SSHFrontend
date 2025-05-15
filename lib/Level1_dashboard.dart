@@ -271,6 +271,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   final TextEditingController _searchController = TextEditingController();
+
   Future<void> _fetchGrievanceById(String grievanceId) async {
     var token = await SecureStorage.getAccessToken();
     print(grievanceId);
@@ -279,7 +280,6 @@ class _HomePageState extends State<HomePage> {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
     });
-
     // if(response.statusCode == 401){
     //   bool refreshed = await refreshToken();
     //   if (refreshed) {
@@ -293,8 +293,10 @@ class _HomePageState extends State<HomePage> {
 
     if (response.statusCode == 200) {
       final grievanceData = jsonDecode(response.body);
+      if (!context.mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (_) => GetGrievanceById(grievanceData: grievanceData)));
     } else {
+      if (!mounted) return;
       final error = jsonDecode(response.body);
       showDialog(
         context: context,

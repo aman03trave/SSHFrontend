@@ -163,7 +163,22 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
     final List<String> documents = List<String>.from(documentUrls ?? []);
 
     return Scaffold(
-      appBar: AppBar(title: Text("${widget.complaint["title"]} (${widget.complaint["grievance_id"]})")),
+      backgroundColor: Colors.indigo.shade50,
+      appBar: AppBar(
+          backgroundColor: Colors.indigo,
+          iconTheme: IconThemeData(color: Colors.white),
+          titleSpacing: 0,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            "${widget.complaint["title"]} (${widget.complaint["grievance_id"]})",
+            style: TextStyle(fontSize: 18,// Base size; FittedBox will handle overflow
+                fontWeight: FontWeight.w600,
+                color: Colors.white)
+          ),
+
+        ),
+      ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : widget.complaint.isEmpty

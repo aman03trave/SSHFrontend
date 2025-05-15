@@ -36,7 +36,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController identityValueController = TextEditingController();
 
   String selectedGender = 'Male';
-  String roleName = 'complainant';
+  String roleName = 'Complainant';
   String? selectedCategory;
   List<String> complainantCategories = [];
 
