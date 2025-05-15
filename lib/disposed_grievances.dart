@@ -156,8 +156,16 @@ class _DisposedGrievancesPageState extends State<DisposedGrievancesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Disposed Grievances'),
+        title: Text('Disposed Grievances', style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.indigo,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        )
+            : null,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
