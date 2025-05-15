@@ -313,18 +313,55 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
                     }
                   },
                 ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: selectedImages
-                      .map((img) => Image.file(
-                    File(img.path),
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  ))
-                      .toList(),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: selectedImages.length,
+                  itemBuilder: (context, index) {
+                    final img = selectedImages[index];
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(img.path),
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() => selectedImages.removeAt(index));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Image removed"), duration: Duration(seconds: 1)),
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.close, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
+
+
                 SizedBox(height: 20),
                 Text("Attach Document (optional)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
                 SizedBox(height: 6),
@@ -338,22 +375,39 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
                   onPressed: pickDocument,
                 ),
                 if (selectedDocument != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
+                  Container(
+                    margin: EdgeInsets.only(top: 8),
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.insert_drive_file, color: Colors.white),
-                        SizedBox(width: 8),
+                        Icon(Icons.insert_drive_file, color: Colors.indigo),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             selectedDocument!.path.split('/').last,
-                            style: TextStyle(fontSize: 14),
                             overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              selectedDocument = null;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Document removed"), duration: Duration(seconds: 1)),
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
+
+
                 SizedBox(height: 20),
                 Center(
                   child: ElevatedButton.icon(

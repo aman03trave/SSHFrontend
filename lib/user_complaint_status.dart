@@ -16,6 +16,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        scaffoldBackgroundColor: Colors.indigo.shade50,
+      ),
       home: Dashboard(),
     );
   }
@@ -77,7 +81,6 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget buildComplaintCard(Map<String, dynamic> complaint) {
-    // Fetch the first image if available
     final List<dynamic> images = complaint['media']?['images'] ?? [];
     final imageUrl = images.isNotEmpty ? "$baseURL/${images[0]}" : '';
 
@@ -90,43 +93,85 @@ class _DashboardState extends State<Dashboard> {
           ),
         );
       },
-      child: Card(
-        margin: const EdgeInsets.all(10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        clipBehavior: Clip.antiAlias,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (imageUrl.isNotEmpty)
-              Container(
-                height: 200,
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                height: 180,
                 width: double.infinity,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                          child: Icon(Icons.broken_image, size: 50)),
-                    );
-                  },
-                ),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 180,
+                    color: Colors.indigo.shade50,
+                    child: const Center(
+                      child: Icon(Icons.broken_image, size: 50, color: Colors.indigo),
+                    ),
+                  );
+                },
               )
-            else
-              Container(
-                height: 200,
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.broken_image, size: 50)),
+                  : Container(
+                height: 180,
+                color: Colors.indigo.shade50,
+                child: const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.indigo),
+                ),
               ),
-            ListTile(
-              title: Text(complaint["title"] ?? "No Title"),
-              subtitle: Text(complaint["description"] ?? "No Description"),
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    complaint["title"] ?? "No Title",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    complaint["description"] ?? "No Description",
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.indigo.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+
 
   Widget buildBadge(int count) {
     return count > 0
@@ -136,7 +181,7 @@ class _DashboardState extends State<Dashboard> {
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: Colors.red,
+          color: Colors.indigo.shade700,
           borderRadius: BorderRadius.circular(12),
         ),
         constraints: const BoxConstraints(
@@ -169,9 +214,20 @@ class _DashboardState extends State<Dashboard> {
     final filteredGrievances = getFilteredGrievances();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Dashboard")),
+        backgroundColor: Colors.grey[300],
+      appBar: AppBar(
+        backgroundColor: Colors.indigo,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          "Dashboard",
+          style: TextStyle(
+            color: Colors.white,  // Make dashboard text white
+          ),
+        ),
+      ),
+
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
           : filteredGrievances.isEmpty
           ? const Center(child: Text("No grievances found."))
           : ListView.builder(
@@ -213,8 +269,10 @@ class _DashboardState extends State<Dashboard> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
+        selectedItemColor: Colors.indigo,
+        unselectedItemColor: Colors.indigo.shade200,
         onTap: _onItemTapped,
+        backgroundColor: Colors.indigo.shade50,
       ),
     );
   }

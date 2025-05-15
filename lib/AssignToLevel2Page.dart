@@ -52,8 +52,8 @@ class AssignToLevel2Page extends StatefulWidget {
 
 class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
   List<GrievanceItem> grievances = [];
-  List<Map<String, dynamic>> officerDataList = [];
-  Map<String, String> officerNameToId = {};
+  // List<Map<String, dynamic>> officerDataList = [];
+  // Map<String, String> officerNameToId = {};
   bool isLoading = true;
 
   final List<Color> cardColors = [
@@ -67,13 +67,14 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
   void initState() {
     super.initState();
     loadData();
+
   }
 
   Future<void> loadData() async {
     try {
       String? token = await SecureStorage.getAccessToken();
 
-      Future<http.Response> fetchGrievances() => http.get(
+      var response = await http.get(
         Uri.parse('$baseURL/getGrievancesByDistrict'),
         headers: {
           "Content-Type": "application/json",
@@ -81,37 +82,24 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
         },
       );
 
-      Future<http.Response> fetchOfficers() => http.get(
-        Uri.parse('$baseURL/getBlockOfficersWithGrievanceCount'),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token"
-        },
-      );
-
-      var grievanceResponse = await fetchGrievances();
-      var officerResponse = await fetchOfficers();
-
-      if (grievanceResponse.statusCode == 401) {
+      if (response.statusCode == 401) {
         bool refreshed = await refreshToken();
         if (refreshed) {
           token = await SecureStorage.getAccessToken();
-          grievanceResponse = await fetchGrievances();
-          officerResponse = await fetchOfficers();
+          response = await http.get(
+            Uri.parse('$baseURL/getGrievancesByDistrict'),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token"
+            },
+          );
         }
       }
 
-      if (grievanceResponse.statusCode == 200 && officerResponse.statusCode == 200) {
-        final List grievanceData = jsonDecode(grievanceResponse.body);
-        final List officerData = jsonDecode(officerResponse.body);
-
+      if (response.statusCode == 200) {
+        final List grievanceData = jsonDecode(response.body);
         setState(() {
           grievances = grievanceData.map((item) => GrievanceItem.fromJson(item)).toList();
-          officerDataList = List<Map<String, dynamic>>.from(officerData);
-          officerNameToId = {
-            for (var o in officerData)
-              "${o['name']} (Grievances: ${o['grievance_count']})": o['user_id'].toString()
-          };
           isLoading = false;
         });
       }
@@ -119,6 +107,7 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
       print('Error loading data: $e');
     }
   }
+
 
   Future<void> assignGrievance(String grievanceId, String officerId) async {
     String? token = await SecureStorage.getAccessToken();
@@ -199,7 +188,7 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
                   itemBuilder: (context, index) {
                     return GrievanceAssignCard(
                       item: grievances[index],
-                      officerMap: officerNameToId,
+                      // officerMap: officerNameToId,
                       onAssign: assignGrievance,
                       backgroundColor: cardColors[index % cardColors.length],
                     );
@@ -216,14 +205,12 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
 
 class GrievanceAssignCard extends StatefulWidget {
   final GrievanceItem item;
-  final Map<String, String> officerMap;
   final Function(String, String) onAssign;
   final Color backgroundColor;
 
   const GrievanceAssignCard({
     super.key,
     required this.item,
-    required this.officerMap,
     required this.onAssign,
     required this.backgroundColor,
   });
@@ -234,8 +221,65 @@ class GrievanceAssignCard extends StatefulWidget {
 
 class _GrievanceAssignCardState extends State<GrievanceAssignCard> {
   String? selectedOfficer;
+  Map<String, String> officerMap = {};
+  bool officerLoading = false;
+
+  Future<void> fetchOfficersForGrievance(String grievanceId) async {
+    print(grievanceId);
+    try {
+      setState(() {
+        officerLoading = true;
+      });
+
+      String? token = await SecureStorage.getAccessToken();
+      var response = await http.get(
+        Uri.parse('$baseURL/getBlockOfficersWithGrievanceCount?grievance_id=$grievanceId'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token"
+        },
+      );
+
+      if (response.statusCode == 401) {
+        bool refreshed = await refreshToken();
+        if (refreshed) {
+          token = await SecureStorage.getAccessToken();
+          response = await http.get(
+            Uri.parse('$baseURL/getBlockOfficersWithGrievanceCount?grievance_id=$grievanceId'),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token"
+            },
+          );
+        }
+      }
+
+      if (response.statusCode == 200) {
+        final List officerData = jsonDecode(response.body);
+        setState(() {
+          officerMap = {
+            for (var o in officerData)
+              "${o['officer_name']} (Grievances: ${o['grievance_count']})": o['officer_id'].toString()
+          };
+          officerLoading = false;
+        });
+      } else {
+        throw Exception("Failed to fetch officers");
+      }
+    } catch (e) {
+      print("Error fetching officers: $e");
+      setState(() {
+        officerLoading = false;
+      });
+    }
+  }
 
   @override
+  void initState() {
+    super.initState();
+    // Automatically fetch officers once this widget is initialized
+    fetchOfficersForGrievance(widget.item.grievanceId);
+  }
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -249,17 +293,15 @@ class _GrievanceAssignCardState extends State<GrievanceAssignCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.item.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-
+          Text(widget.item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text("🏫 School: ${widget.item.schoolName}", style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
           Text("📍 Block: ${widget.item.blockName}", style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 4),
-
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          officerLoading
+              ? const Center(child: CircularProgressIndicator())
+              :DropdownButtonFormField<String>(
             value: selectedOfficer,
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -267,7 +309,7 @@ class _GrievanceAssignCardState extends State<GrievanceAssignCard> {
               labelStyle: const TextStyle(fontSize: 14),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            items: widget.officerMap.keys.map((officerName) {
+            items: officerMap.keys.map((officerName) {
               return DropdownMenuItem<String>(
                 value: officerName,
                 child: Text(officerName, style: const TextStyle(fontSize: 14)),
@@ -279,6 +321,7 @@ class _GrievanceAssignCardState extends State<GrievanceAssignCard> {
               });
             },
           ),
+
           if (selectedOfficer != null)
             Align(
               alignment: Alignment.centerRight,
@@ -287,14 +330,7 @@ class _GrievanceAssignCardState extends State<GrievanceAssignCard> {
                   try {
                     await widget.onAssign(
                       widget.item.grievanceId,
-                      widget.officerMap[selectedOfficer]!,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "${widget.item.title} assigned to $selectedOfficer",
-                        ),
-                      ),
+                      officerMap[selectedOfficer]!,
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(

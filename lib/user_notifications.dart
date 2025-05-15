@@ -22,7 +22,7 @@ class UserReminder extends StatelessWidget {
       title: 'Notifications',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.indigo.shade50,
+        scaffoldBackgroundColor: Color(0xFFF8FAFF), // Very light blue-ish white
         textTheme: GoogleFonts.poppinsTextTheme(),
         useMaterial3: true,
       ),
@@ -233,7 +233,7 @@ class _ReminderPageState extends State<ReminderPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : grievanceList.isEmpty
-          ? const Center(child: Text("No pending reminders available."))
+          ? const Center(child: Text("No notifications available."))
           : ListView.builder(
         itemCount: grievanceList.length,
         itemBuilder: (context, index) {
@@ -247,7 +247,7 @@ class _ReminderPageState extends State<ReminderPage> {
   Widget _buildReminderCard(Map<String, dynamic> grievance) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.indigo.shade100,
+      color: const Color(0xFFE8F0FF), // light indigo for cards
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -277,29 +277,40 @@ class _ReminderPageState extends State<ReminderPage> {
             ...grievance['messages'].map<Widget>(
                   (msg) => Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
-                child: Text(msg,
-                    style: const TextStyle(
-                        color: Colors.black87, fontSize: 12)),
+                child: Text(
+                  msg,
+                  style: const TextStyle(color: Colors.black87, fontSize: 12),
+                ),
               ),
             ),
             if (grievance['showReminderSection'] &&
                 grievance['canSendReminder'])
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo.shade700,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: 150,
+                      maxWidth: 220,
                     ),
-                    onPressed: () =>
-                        sendReminder(grievance['grievance_id']),
-                    child: const Text(
-                      'Send Reminder',
-                      style: TextStyle(color: Colors.white),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo.shade700,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => sendReminder(grievance['grievance_id']),
+                      child: Text(
+                        'Send Reminder',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -308,5 +319,6 @@ class _ReminderPageState extends State<ReminderPage> {
         ),
       ),
     );
+
   }
 }

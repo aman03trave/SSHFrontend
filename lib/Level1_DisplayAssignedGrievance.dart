@@ -63,7 +63,7 @@ class _AssignedGrievancePageState extends State<AssignedGrievancePage> {
           onPressed: () => Navigator.pop(context),
         )
             : null,
-        backgroundColor: const Color(0xFF34A853),
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
