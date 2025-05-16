@@ -190,7 +190,7 @@ class _DashboardState extends State<Dashboard> {
     final filteredGrievances = getFilteredGrievances();
 
     return Scaffold(
-      backgroundColor: Colors.indigo.shade50,
+        backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.indigo.shade700,
         iconTheme: const IconThemeData(color: Colors.white),

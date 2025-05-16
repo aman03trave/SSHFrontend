@@ -238,8 +238,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // Prevent automatic popping
-      onPopInvokedWithResult: (didPop, result) async {
+      onPopInvoked: (didPop) async {
         if (!didPop) {
+          // Reload logic here
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => DashboardScreen()),
