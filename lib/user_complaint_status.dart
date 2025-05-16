@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config.dart';
+import 'disposed_grievances.dart';
 import 'refreshtoken.dart';
 import 'storage_service.dart';
 import 'user_grievance_detail.dart';
@@ -66,10 +67,11 @@ class _DashboardState extends State<Dashboard> {
     if (_selectedIndex == 0) {
       return grievances;
     } else if (_selectedIndex == 1) {
-      return grievances.where((g) =>
-      g["action_code_id"] != 1 && g["action_code_id"] != 7).toList();
+      // In Process -> isdisposed == false
+      return grievances.where((g) => g["isdisposed"] == false).toList();
     } else if (_selectedIndex == 2) {
-      return grievances.where((g) => g["action_code_id"] == 7).toList();
+      // Disposed -> isdisposed == true
+      return grievances.where((g) => g["isdisposed"] == true).toList();
     }
     return [];
   }
@@ -78,6 +80,12 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       _selectedIndex = index;
     });
+    if(index == 2){
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DisposedGrievancesPage()),
+      );
+    }
   }
 
   Widget buildComplaintCard(Map<String, dynamic> complaint) {
@@ -100,7 +108,7 @@ class _DashboardState extends State<Dashboard> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.indigo.shade200.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -120,7 +128,7 @@ class _DashboardState extends State<Dashboard> {
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     height: 180,
-                    color: Colors.indigo.shade50,
+                    color: Colors.white,
                     child: const Center(
                       child: Icon(Icons.broken_image, size: 50, color: Colors.indigo),
                     ),
@@ -138,7 +146,7 @@ class _DashboardState extends State<Dashboard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
+                color: Colors.transparent,
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
               ),
               child: Column(
@@ -171,65 +179,35 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-
-
-  Widget buildBadge(int count) {
-    return count > 0
-        ? Positioned(
-      right: -10,
-      top: -10,
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: Colors.indigo.shade700,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        constraints: const BoxConstraints(
-          minWidth: 18,
-          minHeight: 18,
-        ),
-        child: Center(
-          child: Text(
-            '$count',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ),
-    )
-        : const SizedBox();
-  }
-
   @override
   Widget build(BuildContext context) {
     final allGrievances = grievances;
-    final inProcessGrievances = grievances
-        .where((g) => g["action_code_id"] != 1 && g["action_code_id"] != 7)
-        .toList();
+    final inProcessGrievances =
+    grievances.where((g) => g["isdisposed"] == false).toList();
     final disposedGrievances =
-    grievances.where((g) => g["action_code_id"] == 7).toList();
+    grievances.where((g) => g["isdisposed"] == true).toList();
 
     final filteredGrievances = getFilteredGrievances();
 
     return Scaffold(
-        backgroundColor: Colors.grey[300],
+      backgroundColor: Colors.indigo.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo.shade700,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "Dashboard",
-          style: TextStyle(
-            color: Colors.white,  // Make dashboard text white
-          ),
+          style: TextStyle(color: Colors.white),
         ),
       ),
-
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
           : filteredGrievances.isEmpty
-          ? const Center(child: Text("No grievances found."))
+          ? const Center(
+        child: Text(
+          "No grievances found.",
+          style: TextStyle(color: Colors.indigo),
+        ),
+      )
           : ListView.builder(
         itemCount: filteredGrievances.length,
         itemBuilder: (context, index) =>
@@ -238,39 +216,21 @@ class _DashboardState extends State<Dashboard> {
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.list),
-                buildBadge(allGrievances.length),
-              ],
-            ),
+            icon: const Icon(Icons.list),
             label: 'Complaints',
           ),
           BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.sync),
-                buildBadge(inProcessGrievances.length),
-              ],
-            ),
+            icon: const Icon(Icons.sync),
             label: 'In Process',
           ),
           BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.done),
-                buildBadge(disposedGrievances.length),
-              ],
-            ),
+            icon: const Icon(Icons.done),
             label: 'Disposed',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.indigo,
-        unselectedItemColor: Colors.indigo.shade200,
+        selectedItemColor: Colors.indigo.shade700,
+        unselectedItemColor: Colors.indigo.shade300,
         onTap: _onItemTapped,
         backgroundColor: Colors.indigo.shade50,
       ),

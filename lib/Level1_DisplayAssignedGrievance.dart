@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
+import 'officer_G_detail_page.dart';
 
 void main() {
   runApp(const MaterialApp(home: AssignedGrievancePage()));
@@ -102,7 +103,15 @@ class _AssignedGrievancePageState extends State<AssignedGrievancePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => AssignedGrievanceDetailPage(item: item),
+                              builder: (_) => GrievanceDetailPage(complaint: {
+                                "grievance_id": item.grievanceId,
+                                "title": item.title,
+                                "description": item.description,
+                                "block_name": item.blockName,
+                                "school_name": item.schoolName,
+                                "name": item.complainantName,
+                                "grievance_media": item.grievanceMedia,
+                              }),
                             ),
                           );
                         },
@@ -125,12 +134,28 @@ class GrievanceItem {
   final String description;
   final String assignedToName;
   final DateTime assignedAt;
+  final String grievanceId;
+  final String complainantName;
+  final String blockName;
+  final String schoolName;
+  final String duration;
+
+  final Map<String, dynamic> grievanceMedia;
+
 
   GrievanceItem({
     required this.title,
     required this.description,
     required this.assignedToName,
     required this.assignedAt,
+    required this.grievanceId,
+    required this.complainantName,
+    required this.blockName,
+    required this.schoolName,
+    required this.duration,
+
+
+    required this.grievanceMedia,
   });
 
   factory GrievanceItem.fromJson(Map<String, dynamic> json) {
@@ -139,9 +164,26 @@ class GrievanceItem {
       description: json['description'] ?? '',
       assignedToName: json['assigned_to_name'] ?? '',
       assignedAt: DateTime.parse(json['assigned_at']),
+      grievanceId: json['grievance_id'] ?? '',
+      complainantName: json['name'] ?? 'Unknown',
+      blockName: json['block_name'] ?? 'Unknown Block',
+      schoolName: json['school_name'] ?? 'Unknown School',
+      duration: _formatDuration(json['created_at']),
+      grievanceMedia: json['grievance_media'] ?? {},
     );
   }
 }
+
+String _formatDuration(String createdAt) {
+final DateTime createdTime = DateTime.parse(createdAt).toLocal();
+final Duration diff = DateTime.now().difference(createdTime);
+
+if (diff.inSeconds < 60) return 'Just now';
+if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+if (diff.inHours < 24) return '${diff.inHours} hours ago';
+return '${diff.inDays} days ago';
+}
+
 
 class _AssignedGrievanceTile extends StatelessWidget {
   final GrievanceItem item;

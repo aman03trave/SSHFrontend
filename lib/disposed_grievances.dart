@@ -9,6 +9,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
+import 'package:ssh/user_complaint_status.dart';
+import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
 import 'config.dart';
 import 'storage_service.dart';
 import 'refreshtoken.dart';
@@ -161,7 +164,28 @@ class _DisposedGrievancesPageState extends State<DisposedGrievancesPage> {
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+              // Fetch role_id
+
+            if (roleId == "3") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Dashboard()),
+              );
+            } else if (roleId == "4") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+              );
+            } else if (roleId == "5") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Level2Dashboard()),
+              );
+            } else {
+              Navigator.pushReplacementNamed(context, '/defaultHome');
+            }
+          },
         )
             : null,
         foregroundColor: Colors.white,
