@@ -13,6 +13,7 @@ import 'Level1_dashboard.dart';
 import 'Level2_Dashboard.dart';
 import 'userdashboard.dart';
 import 'logvisit.dart';
+import 'user_complaint_status.dart';
 // import 'Level2_DisplayAssignedGrievance.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -327,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 SizedBox(height: 20),
                 _buildTextField("Name", nameController, Icons.person),
-                _buildTextField("Email", emailController, Icons.email, isEmail: true),
+                _buildTextField("Email", emailController, Icons.email, isEmail: true, enabled: false),
                 _buildTextField("Age", ageController, Icons.cake, isNumber: true),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -372,26 +373,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+
     );
+
   }
 
   Widget _buildTextField(String label, TextEditingController controller, IconData icon,
-      {bool isEmail = false, bool isNumber = false}) {
+      {bool isEmail = false, bool isNumber = false, bool enabled = true}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextField(
         controller: controller,
-        keyboardType: isNumber
-            ? TextInputType.number
-            : (isEmail ? TextInputType.emailAddress : TextInputType.text),
+        keyboardType: isNumber ? TextInputType.number : (isEmail ? TextInputType.emailAddress : TextInputType.text),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.indigo),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
+        enabled: enabled,
       ),
     );
   }
+
 
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(

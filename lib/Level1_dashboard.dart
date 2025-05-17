@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -78,15 +77,13 @@ class _GrievanceDashboardState extends State<GrievanceDashboard> {
             _currentIndex = index;
           });
         },
-        selectedItemColor: Colors.blue.shade800,
-        unselectedItemColor: Colors.grey.shade600,
+        selectedItemColor: Colors.indigo,
+        unselectedItemColor: Colors.indigo[200],
         backgroundColor: Colors.white,
         type: BottomNavigationBarType.fixed,
         elevation: 10,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          // BottomNavigationBarItem(icon: Icon(Icons.feed), label: "Feed"),
-          // BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
@@ -456,6 +453,7 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.report,
               label: "New Grievance",
               count: newGrievanceCount,
+              iconColor: Colors.indigo,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => NewGrievancePage()),
@@ -465,6 +463,7 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.assignment,
               label: "Assign Grievance",
               count: newGrievanceCount,
+              iconColor: Colors.indigo,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AssignToLevel2Page()),
@@ -473,6 +472,7 @@ class _HomePageState extends State<HomePage> {
             _ServiceCard(
               icon: Icons.assignment_return,
               label: "Returned",
+              iconColor: Colors.indigo,
               count: returnedGrievanceCount,
               onTap: () => Navigator.push(
                 context,
@@ -482,6 +482,7 @@ class _HomePageState extends State<HomePage> {
             _ServiceCard(
               icon: Icons.fact_check,
               label: "ATR Review",
+              iconColor: Colors.indigo,
               count: atrReportCount,
               onTap: () => Navigator.push(
                 context,
@@ -491,6 +492,7 @@ class _HomePageState extends State<HomePage> {
             _ServiceCard(
               icon: Icons.task,
               label: "Assigned",
+              iconColor: Colors.indigo,
               count: assignedGrievanceCount,
               onTap: () => Navigator.push(
                 context,
@@ -500,6 +502,7 @@ class _HomePageState extends State<HomePage> {
             _ServiceCard(
               icon: Icons.verified,
               label: "Disposed",
+              iconColor: Colors.indigo,
               count: disposedGrievanceCount,
               onTap: () => Navigator.push(
                 context,
@@ -556,8 +559,8 @@ class _TrendingCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       elevation: 2,
+      color: Colors.indigo.shade50,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.blue.shade50,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -599,12 +602,14 @@ class _ServiceCard extends StatelessWidget {
   final String label;
   final int count;
   final VoidCallback onTap;
+  final Color iconColor;
 
   const _ServiceCard({
     required this.icon,
     required this.label,
     required this.count,
     required this.onTap,
+    this.iconColor = Colors.indigo,
   });
 
   @override
@@ -623,7 +628,7 @@ class _ServiceCard extends StatelessWidget {
                 alignment: Alignment.topRight,
                 clipBehavior: Clip.none,  // Allow overflow
                 children: [
-                  Icon(icon, color: Colors.blue.shade800, size: 40),
+                  Icon(icon, color: iconColor, size: 40),
                   if (count > 0)
                     Positioned(
                       right: -4,    // Changed from -10 to -4 to make it visible
@@ -666,24 +671,3 @@ class _ServiceCard extends StatelessWidget {
 
 
 // Placeholder Page
-class DummyPage extends StatelessWidget {
-  final String title;
-  const DummyPage(this.title, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '$title Page',
-          style: const TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
