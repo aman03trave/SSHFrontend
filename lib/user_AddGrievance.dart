@@ -185,17 +185,19 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: Icon(Icons.close, color: Colors.white),
+                  icon: Icon(Icons.close, color: Colors.red),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            Icon(Icons.check_circle, color: Colors.white, size: 48),
+            Icon(Icons.check_circle, color: Colors.green, size: 48),
             const SizedBox(height: 12),
             Text('Grievance Submitted!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text('Your grievance "$grievanceTitle" has been submitted successfully.', textAlign: TextAlign.center),
             const SizedBox(height: 10),
+
+
           ],
         ),
       ),
@@ -262,7 +264,24 @@ class _GrievanceScreenState extends State<GrievanceScreen> {
                     border: OutlineInputBorder(),
                     labelStyle: TextStyle(color: Colors.indigo),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Description is required' : null,
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Description is required';
+                    } else if (value.trim().split(RegExp(r'\s+')).length > 100) {
+                      return 'Maximum 100 words allowed';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    // Limit words to 100
+                    List<String> words = value.trim().split(RegExp(r'\s+'));
+                    if (words.length > 100) {
+                      descriptionController.text = words.take(100).join(' ');
+                      descriptionController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: descriptionController.text.length),
+                      );
+                    }
+                  },
                 ),
                 SizedBox(height: 20),
                 Text("Select Privacy", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 14)),

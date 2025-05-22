@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:ssh/refreshtoken.dart';
+import 'logvisit.dart';
 import 'signup.dart';
 import 'customsnackbar.dart';
 import 'userdashboard.dart';
@@ -37,6 +41,9 @@ class _FirstPageState extends State<FirstPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoggingIn = false;
+  String userName = "";
+  String user_id = "";
+  String location = "Fetching location...";
 
   @override
 
@@ -126,6 +133,9 @@ class _FirstPageState extends State<FirstPage> {
 
           showCustomSnackBar(context, "Signin Successful!");
 
+          await fetchDashboardData();
+          await _getLocation();
+
           Future.delayed(Duration(milliseconds: 300), () {
             if (roleId == "1") {
               Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
@@ -151,6 +161,67 @@ class _FirstPageState extends State<FirstPage> {
     } finally {
       setState(() => isLoggingIn = false);
     }
+  }
+
+  Future<void> fetchDashboardData() async {
+    String? token = await SecureStorage.getAccessToken();
+
+    final url = Uri.parse("$baseURL/dashboard");
+    http.Client client = http.Client();
+
+    try {
+      var response = await client.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 401) {
+        bool refreshed = await refreshToken();
+        if (refreshed) {
+          token = await SecureStorage.getAccessToken();
+          response = await client.get(
+            Uri.parse("$baseURL/dashboard"),
+            headers: {"Authorization": "Bearer $token"},
+          );
+        } else {
+          await SecureStorage.clearToken();
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool("isLoggedIn", false);
+        }
+      }
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        setState(() {
+          userName = jsonResponse['name'];
+          user_id = jsonResponse['user']['user_id'];
+        });
+      } else {
+        print("Failed to fetch dashboard data");
+      }
+    } catch (e) {
+      print("Error: $e");
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _getLocation() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.deniedForever) return;
+
+    Position position = await Geolocator.getCurrentPosition();
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    if (placemarks.isNotEmpty) {
+      setState(() => location = placemarks[0].locality ?? "Unknown city");
+    }
+    await logDashboardVisit(user_id, location);
   }
 
 
@@ -224,17 +295,17 @@ class _FirstPageState extends State<FirstPage> {
                 ),
                 SizedBox(height: 20),
                 Text("- Or sign up with -"),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(FontAwesomeIcons.google, size: 40, color: Colors.red),
-                    SizedBox(width: 20),
-                    Icon(FontAwesomeIcons.facebook, size: 40, color: Colors.blue),
-                    SizedBox(width: 20),
-                    Icon(FontAwesomeIcons.apple, size: 40, color: Colors.black),
-                  ],
-                ),
+                // SizedBox(height: 10),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.center,
+                //   children: [
+                //     Icon(FontAwesomeIcons.google, size: 40, color: Colors.red),
+                //     SizedBox(width: 20),
+                //     Icon(FontAwesomeIcons.facebook, size: 40, color: Colors.blue),
+                //     SizedBox(width: 20),
+                //     Icon(FontAwesomeIcons.apple, size: 40, color: Colors.black),
+                //   ],
+                // ),
                 SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

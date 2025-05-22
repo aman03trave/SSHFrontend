@@ -8,6 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ssh/user_complaint_status.dart';
+import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
 import 'config.dart';
 import 'storage_service.dart';
 import 'refreshtoken.dart';
@@ -22,13 +25,20 @@ class ReturnedGrievancePage extends StatefulWidget {
 class _ReturnedGrievancePageState extends State<ReturnedGrievancePage> {
   List<dynamic> grievances = [];
   bool isLoading = true;
+  String? roleId;
 
   @override
   void initState() {
     super.initState();
     fetchReturnedGrievances();
+    getRoleId();
   }
-
+  Future<String?> getRoleId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // SharedPreferences prefs = await SharedPreferences.getInstance();
+    roleId = prefs.getString('role_id');
+    return prefs.getString('role_id');
+  }
   Future<void> fetchReturnedGrievances() async {
     String? token = await SecureStorage.getAccessToken();
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -133,6 +143,34 @@ class _ReturnedGrievancePageState extends State<ReturnedGrievancePage> {
       appBar: AppBar(
         title: const Text("Returned Grievances", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
+        centerTitle: true,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Fetch role_id
+
+            if (roleId == "3") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Dashboard()),
+              );
+            } else if (roleId == "4") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+              );
+            } else if (roleId == "5") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Level2Dashboard()),
+              );
+            } else {
+              Navigator.pushReplacementNamed(context, '/defaultHome');
+            }
+          },
+        )
+            : null,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

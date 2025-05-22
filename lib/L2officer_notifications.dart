@@ -130,7 +130,7 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notifications"),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -155,7 +155,7 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
             elevation: 2,
             color: item['type'] == "Reminder"
                 ? Colors.orange[100]
-                : const Color(0xFFEAF3FF),
+                : Colors.indigo.shade50,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

@@ -55,7 +55,7 @@ class _AssignedGrievancePageState extends State<AssignedGrievancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FC),
+      backgroundColor: Colors.indigo.shade50,
       appBar: AppBar(
         title: const Text("Assigned Grievances"),
         leading: Navigator.canPop(context)
@@ -69,6 +69,7 @@ class _AssignedGrievancePageState extends State<AssignedGrievancePage> {
         elevation: 0,
       ),
       body: SafeArea(
+
         child: Column(
           children: [
             const Padding(

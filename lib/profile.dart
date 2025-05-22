@@ -83,8 +83,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     bool? isLoggedIn = prefs.getBool("isLoggedIn");
-  print("isLoggedIn: $isLoggedIn");
-  print("Inside navigate to home");
+    print("isLoggedIn: $isLoggedIn");
+    print("Inside navigate to home");
     // Prevent navigation if not logged in
     if (isLoggedIn == null || !isLoggedIn) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));

@@ -161,7 +161,10 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
           leading: Navigator.canPop(context)
               ? IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+            ),
           )
               : null,
           foregroundColor: Colors.white,
@@ -170,6 +173,16 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
+            : atrReviews.isEmpty // <-- Check if list is empty
+            ? const Center(
+          child: Text(
+            "No grievance found",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        )
             : ListView.builder(
           padding: const EdgeInsets.all(8),
           itemCount: atrReviews.length,
@@ -188,6 +201,7 @@ class _ATRReviewListPageState extends State<ATRReviewListPage> {
       ),
     );
   }
+
 
 }
 

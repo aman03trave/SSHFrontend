@@ -66,7 +66,7 @@ class _ReminderPageState extends State<ReminderPage> {
         if (refreshed) {
           token = await SecureStorage.getAccessToken();
           response = await http.get(
-            Uri.parse('$baseURL/getReminder'),
+            Uri.parse('$baseURL/checkReminder'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token'

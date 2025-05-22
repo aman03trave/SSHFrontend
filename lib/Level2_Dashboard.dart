@@ -54,7 +54,7 @@ class _Level2DashboardState extends State<Level2Dashboard> {
 
   final List<Widget> _pages = [
     HomePage(),
-    DummyPage("History"),
+    // DummyPage("History"),
     ProfileScreen(),
   ];
 
@@ -79,7 +79,7 @@ class _Level2DashboardState extends State<Level2Dashboard> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           // BottomNavigationBarItem(icon: Icon(Icons.feed), label: "Feed"),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+          // BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile",
 
           ),
@@ -168,7 +168,7 @@ class _HomePageState extends State<HomePage> {
     if (placemarks.isNotEmpty) {
       setState(() => location = placemarks[0].locality ?? "Unknown city");
     }
-    await logDashboardVisit(user_id, location);
+
   }
 
   Future<List<Grievance>> fetchLatestGrievances() async {
@@ -349,7 +349,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 120,
+                    height: 150,
                     child: PageView(
                       controller: PageController(viewportFraction: 0.9),
                       children: grievances.map((g) {
@@ -466,37 +466,76 @@ class _TrendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Limit the description to a few words (e.g., 15 words max)
+    String truncatedDescription = description.split(' ').length > 15
+        ? description.split(' ').sublist(0, 15).join(' ') + '...'
+        : description;
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+      elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.blue.shade50,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              "$title ($grievanceId)",
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                height: 1.3,
-              ),
+            // Title and ID
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "$title ($grievanceId)",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      height: 1.3,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // const Icon(Icons.share, size: 18, color: Colors.indigo)
+              ],
             ),
             const SizedBox(height: 6),
-            Text(description, style: TextStyle(
-              fontSize: 12,
-              height: 1.0,
-            ),),
 
+            // Description (Wrapped in Flexible to avoid overflow)
+            Flexible(
+              child: Text(
+                truncatedDescription,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.2,
+                  color: Colors.black87,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ),
             const SizedBox(height: 8),
+
+            // Date and View Details Button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(date, style: const TextStyle(fontSize: 12)),
-                const Icon(Icons.share, size: 18),
+                // TextButton(
+                //   onPressed: () {
+                //     // Implement your logic for View Details
+                //   },
+                //   style: TextButton.styleFrom(
+                //     padding: EdgeInsets.zero,
+                //     minimumSize: const Size(50, 20),
+                //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                //   ),
+                //   child: const Text(
+                //     "View Details",
+                //     style: TextStyle(fontSize: 12, color: Colors.indigo),
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -545,25 +584,4 @@ class _ServiceCard extends StatelessWidget {
   }
 }
 
-// Placeholder Page
-class DummyPage extends StatelessWidget {
-  final String title;
-  const DummyPage(this.title, {super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Text(
-          '$title Page',
-          style: const TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}

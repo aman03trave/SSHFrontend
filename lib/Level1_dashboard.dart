@@ -10,7 +10,6 @@ import 'AssignToLevel2Page.dart';
 import 'getGrievanceById.dart';
 import 'logvisit.dart';
 import 'profile.dart';
-import 'ATRverify.dart';
 import 'storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
@@ -175,7 +174,7 @@ class _HomePageState extends State<HomePage> {
     if (placemarks.isNotEmpty) {
       setState(() => location = placemarks[0].locality ?? "Unknown city");
     }
-    await logDashboardVisit(user_id, location);
+
   }
 
   Future<int> fetchNewGrievanceCount() async {
@@ -556,6 +555,11 @@ class _TrendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Limit the description to a few words (e.g., 15 words max)
+    String truncatedDescription = description.split(' ').length > 15
+        ? description.split(' ').sublist(0, 15).join(' ') + '...'
+        : description;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       elevation: 2,
@@ -565,28 +569,62 @@ class _TrendingCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              "$title ($grievanceId)",
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                height: 1.3,
-              ),
+            // Title and ID
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "$title ($grievanceId)",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      height: 1.3,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // const Icon(Icons.share, size: 18, color: Colors.indigo)
+              ],
             ),
             const SizedBox(height: 6),
-            Text(description, style: TextStyle(
-              fontSize: 12,
-              height: 1.0,
-            ),),
 
+            // Description (Wrapped in Flexible to avoid overflow)
+            Flexible(
+              child: Text(
+                truncatedDescription,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.2,
+                  color: Colors.black87,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ),
             const SizedBox(height: 8),
+
+            // Date and View Details Button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(date, style: const TextStyle(fontSize: 12)),
-                const Icon(Icons.share, size: 18),
+                // TextButton(
+                //   onPressed: () {
+                //     // Implement your logic for View Details
+                //   },
+                //   style: TextButton.styleFrom(
+                //     padding: EdgeInsets.zero,
+                //     minimumSize: const Size(50, 20),
+                //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                //   ),
+                //   child: const Text(
+                //     "View Details",
+                //     style: TextStyle(fontSize: 12, color: Colors.indigo),
+                //   ),
+                // ),
               ],
             ),
           ],

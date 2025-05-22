@@ -157,17 +157,17 @@ class _AssignToLevel2PageState extends State<AssignToLevel2Page> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F6FA),
+        backgroundColor: Colors.indigo.shade50,
         appBar: AppBar(
           title: const Text("Assign to Level 2"),
 
           leading: Navigator.canPop(context)
               ? IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => GrievanceDashboard())),
           )
               : null,
-          backgroundColor: const Color(0xFF34A853),
+          backgroundColor: Colors.indigo,
           foregroundColor: Colors.white,
           elevation: 0,
         ),

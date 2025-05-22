@@ -156,23 +156,19 @@ class _DisposedGrievancesPageState extends State<DisposedGrievancesPage> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Disposed Grievances', style: TextStyle(color: Colors.white),),
+      appBar: (roleId == "3")
+          ? null // 👈 AppBar is disabled if role_id is 3
+          : AppBar(
+        title: Text('Disposed Grievances', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
-              // Fetch role_id
-
-            if (roleId == "3") {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => Dashboard()),
-              );
-            } else if (roleId == "4") {
+            if (roleId == "4") {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => GrievanceDashboard()),
@@ -301,25 +297,55 @@ class _DisposedGrievancesPageState extends State<DisposedGrievancesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text("Final ATR Report:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        ...grievance['final_atr_report'].map<Widget>((report) {
-                          final String fullReportUrl = "$baseURL/${report['document']}";
-                          String uploadTime = formatDate(report['uploaded_time']);
 
-                          return ListTile(
-                            leading: Icon(Icons.picture_as_pdf, color: Colors.blue),
-                            title: Text(report['document'].split('/').last),
-                            subtitle: Text("Uploaded on: $uploadTime"),
-                            onTap: () async {
-                              if (Uri.parse(fullReportUrl).isAbsolute) {
-                                await downloadAndOpenDocument(fullReportUrl);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Invalid Report URL')),
-                                );
-                              }
-                            },
-                          );
-                        }).toList(),
+                        // 👉 If role_id is "3", show only the greatest version
+                        if (roleId == "3")
+                          (() {
+                            // Find the maximum version document
+                            final maxVersionReport = grievance['final_atr_report'].reduce((curr, next) {
+                              return (curr['version'] > next['version']) ? curr : next;
+                            });
+
+                            final String fullReportUrl = "$baseURL/${maxVersionReport['document']}";
+                            String uploadTime = formatDate(maxVersionReport['uploaded_time']);
+
+                            return ListTile(
+                              leading: Icon(Icons.picture_as_pdf, color: Colors.blue),
+                              title: Text(maxVersionReport['document'].split('/').last),
+                              subtitle: Text("Uploaded on: $uploadTime"),
+                              onTap: () async {
+                                if (Uri.parse(fullReportUrl).isAbsolute) {
+                                  await downloadAndOpenDocument(fullReportUrl);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Invalid Report URL')),
+                                  );
+                                }
+                              },
+                            );
+                          })()
+
+                        // 👉 Otherwise, render all versions as usual
+                        else
+                          ...grievance['final_atr_report'].map<Widget>((report) {
+                            final String fullReportUrl = "$baseURL/${report['document']}";
+                            String uploadTime = formatDate(report['uploaded_time']);
+
+                            return ListTile(
+                              leading: Icon(Icons.picture_as_pdf, color: Colors.blue),
+                              title: Text(report['document'].split('/').last),
+                              subtitle: Text("Uploaded on: $uploadTime"),
+                              onTap: () async {
+                                if (Uri.parse(fullReportUrl).isAbsolute) {
+                                  await downloadAndOpenDocument(fullReportUrl);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Invalid Report URL')),
+                                  );
+                                }
+                              },
+                            );
+                          }).toList(),
                       ],
                     )
                   else
@@ -333,4 +359,5 @@ class _DisposedGrievancesPageState extends State<DisposedGrievancesPage> {
       ),
     );
   }
+
 }

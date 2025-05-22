@@ -1,7 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ssh/userdashboard.dart';
 import 'dart:convert';
+import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
 import 'config.dart';
 import 'disposed_grievances.dart';
 import 'refreshtoken.dart';
@@ -35,11 +39,17 @@ class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
   List<dynamic> grievances = [];
   bool isLoading = true;
+  String? roleId;
+  int registered = 0;
+  int inProcess = 0;
+  int completed = 0;
+
 
   @override
   void initState() {
     super.initState();
     fetchGrievances();
+    getRoleId();
   }
 
   Future<void> fetchGrievances() async {
@@ -54,14 +64,25 @@ class _DashboardState extends State<Dashboard> {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
+
+      // 📝 Update counts
+      int totalCount = data['grievance'].length;
+      int inProcessCount = data['grievance'].where((item) => item['isdisposed'] == false).length;
+      int disposedCount = data['grievance'].where((item) => item['isdisposed'] == true).length;
+
       setState(() {
         grievances = data['grievance'];
+        registered = totalCount;
+        inProcess = inProcessCount;
+        completed = disposedCount;
         isLoading = false;
       });
     } else {
       print("Failed to fetch grievances: ${response.statusCode}");
     }
   }
+
+
 
   List<dynamic> getFilteredGrievances() {
     if (_selectedIndex == 0) {
@@ -80,12 +101,19 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       _selectedIndex = index;
     });
-    if(index == 2){
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => DisposedGrievancesPage()),
-      );
-    }
+    // if(index == 2){
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(builder: (context) => DisposedGrievancesPage()),
+    //   );
+    // }
+  }
+
+  Future<String?> getRoleId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // SharedPreferences prefs = await SharedPreferences.getInstance();
+    roleId = prefs.getString('role_id');
+    return prefs.getString('role_id');
   }
 
   Widget buildComplaintCard(Map<String, dynamic> complaint) {
@@ -179,6 +207,27 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  Widget _buildPage() {
+    if (_selectedIndex == 0) {
+      // All grievances
+      return ListView.builder(
+        itemCount: grievances.length,
+        itemBuilder: (context, index) => buildComplaintCard(grievances[index]),
+      );
+    } else if (_selectedIndex == 1) {
+      // In Process grievances
+      final inProcessGrievances = grievances.where((g) => g["isdisposed"] == false).toList();
+      return ListView.builder(
+        itemCount: inProcessGrievances.length,
+        itemBuilder: (context, index) => buildComplaintCard(inProcessGrievances[index]),
+      );
+    } else {
+      // Disposed grievances
+      return DisposedGrievancesPage(); // It will load with the Bottom Nav
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final allGrievances = grievances;
@@ -198,33 +247,134 @@ class _DashboardState extends State<Dashboard> {
           "Dashboard",
           style: TextStyle(color: Colors.white),
         ),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
-          : filteredGrievances.isEmpty
-          ? const Center(
-        child: Text(
-          "No grievances found.",
-          style: TextStyle(color: Colors.indigo),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context)=> DashboardScreen()));
+          },
         ),
-      )
-          : ListView.builder(
-        itemCount: filteredGrievances.length,
-        itemBuilder: (context, index) =>
-            buildComplaintCard(filteredGrievances[index]),
       ),
+      body:  isLoading
+    ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+        : _buildPage(),
+
+    // isLoading
+      //     ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+      //     : filteredGrievances.isEmpty
+      //     ? const Center(
+      //   child: Text(
+      //     "No grievances found.",
+      //     style: TextStyle(color: Colors.indigo),
+      //   ),
+      // )
+      //     : ListView.builder(
+      //   itemCount: filteredGrievances.length,
+      //   itemBuilder: (context, index) =>
+      //       buildComplaintCard(filteredGrievances[index]),
+      // ),
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: const Icon(Icons.list),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.list),
+                if (registered > 0)
+                  Positioned(
+                    right: -10,
+                    top: -5,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '$registered',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'Complaints',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.sync),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.sync),
+                if (inProcess > 0)
+                  Positioned(
+                    right: -10,
+                    top: -5,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '$inProcess',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'In Process',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.done),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.done),
+                if (completed > 0)
+                  Positioned(
+                    right: -10,
+                    top: -5,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '$completed',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'Disposed',
           ),
         ],
@@ -234,6 +384,8 @@ class _DashboardState extends State<Dashboard> {
         onTap: _onItemTapped,
         backgroundColor: Colors.indigo.shade50,
       ),
+
+
     );
   }
 }
