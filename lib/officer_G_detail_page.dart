@@ -8,7 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ssh/user_complaint_status.dart';
 import 'dart:convert';
+import 'Level1_dashboard.dart';
+import 'Level2_Dashboard.dart';
 import 'config.dart';
 import 'storage_service.dart';
 import 'refreshtoken.dart';
@@ -26,11 +29,14 @@ class GrievanceDetailPage extends StatefulWidget {
 class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
   List<dynamic> actionLogs = [];
   bool isLoading = true;
+  String? roleId;
+
 
   @override
   void initState() {
     super.initState();
     fetchActionLogs();
+    getRoleId();
   }
 
   Future<void> fetchActionLogs() async {
@@ -191,8 +197,11 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
   Future<String?> getRoleId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    // SharedPreferences prefs = await SharedPreferences.getInstance();
+    roleId = prefs.getString('role_id');
     return prefs.getString('role_id');
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -204,14 +213,45 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.complaint["title"]} (${widget
-            .complaint["grievance_id"]})",
-            style: TextStyle(color: Colors.white)),
+        // title: Text("${widget.complaint["title"]} (${widget
+        //     .complaint["grievance_id"]})",
+        //     style: TextStyle(color: Colors.white)),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+              "${widget.complaint["title"]} (${widget.complaint["grievance_id"]})",
+              style: TextStyle(fontSize: 18,// Base size; FittedBox will handle overflow
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white)
+          ),
+
+        ),
         backgroundColor: Colors.indigo,
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            // Fetch role_id
+
+            if (roleId == "3") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Dashboard()),
+              );
+            } else if (roleId == "4") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => GrievanceDashboard()),
+              );
+            } else if (roleId == "5") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => Level2Dashboard()),
+              );
+            } else {
+              Navigator.pushReplacementNamed(context, '/defaultHome');
+            }
+          },
         )
             : null,
         foregroundColor: Colors.white,

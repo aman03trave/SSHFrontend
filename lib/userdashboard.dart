@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -196,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (placemarks.isNotEmpty) {
       setState(() => location = placemarks[0].locality ?? "Unknown city");
     }
-    await logDashboardVisit(user_id, location);
+    // await logDashboardVisit(user_id, location);
   }
 
   Future<void> _fetchGrievanceById(String grievanceId) async {
@@ -342,12 +343,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final userId = complaint["complainant_id"];
                   final description = complaint["description"];
                   final title = complaint["title"];
-                  final imageUrl = complaint["media"]["image"];
 
-                  return _buildComplaintCard(description, title, imageUrl);
+                  // ✅ Cast it properly to List<String>
+                  final images = List<String>.from(complaint['grievance_media']?['images'] ?? []);
+
+                  return _buildComplaintCard(description, title, images);
                 },
               ),
             ),
+
           ],
         ),
       ),
@@ -393,7 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildComplaintCard(String description, String title, String imageUrl) {
+  Widget _buildComplaintCard(String description, String title, List<String> imageUrls) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -410,17 +414,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              "$baseURL/$imageUrl", // Replace with your domain
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.asset('assets/placeholder.jpg', fit: BoxFit.cover);
+          SizedBox(
+            height: 180,
+            child: imageUrls.isNotEmpty
+                ? PageView.builder(
+              itemCount: imageUrls.length,
+              itemBuilder: (context, index) {
+                return ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    "$baseURL/${imageUrls[index]}",
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset('assets/img1.jpg', fit: BoxFit.cover);
+                    },
+                  ),
+                );
               },
-            ),
+            )
+                : Image.asset('assets/img1.jpg', fit: BoxFit.cover),
           ),
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -428,11 +442,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                Text(description, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700] )  )           ],
+                const SizedBox(height: 4),
+                Text(description, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700])),
+              ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
+
 }

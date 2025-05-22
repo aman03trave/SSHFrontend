@@ -132,7 +132,6 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
           onPressed: () => Navigator.pop(context),
         )
             : null,
-
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -153,21 +152,18 @@ class _AcceptedGrievancePageState extends State<Level2_AcceptedGrievancePage> {
             itemCount: grievances.length,
             itemBuilder: (context, index) {
               final item = grievances[index];
-              return Card(
-                color: Colors.indigo.shade100,
-                margin: const EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(item.title),
-                  subtitle: Text(item.description),
-                  trailing: _statusMessage(item.actionCodeId),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => GrievanceDetailPage(item: item),
-                      ),
-                    ).then((_) => setState(() {})); // 🔄 Refresh on return
-                  },
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GrievanceDetailPage(item: item),
+                    ),
+                  ).then((_) => setState(() {})); // 🔄 Refresh on return
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: _GrievanceTile(item: item, index: index),
                 ),
               );
             },
@@ -224,7 +220,7 @@ class GrievanceItem {
       description: json['description'] ?? '',
       assigned_by: json['assigned_by'] ?? 'Unknown',
       assigned_at: _formatDuration(json['assigned_at'] ?? ''),
-      actionCodeId: json['latest_action_code_id'] ?? 0,
+      actionCodeId: json['action_code_id'] ?? 0,
       imageUrls: (media['images'] as List<dynamic>?)
           ?.map((image) => "$baseURL/$image")
           .toList() ??
@@ -309,19 +305,65 @@ class _GrievanceTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 🔹 Title
           Text(
             item.title,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
+
+          // 🔹 Description
           Text(item.description),
           const SizedBox(height: 6),
+
+          // 🔹 Assigned By
           Text("👤 ${item.assigned_by}", style: const TextStyle(fontSize: 13)),
           const SizedBox(height: 6),
+
+          // 🔹 Assigned At
           Text("🕒 ${item.assigned_at}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 8),
+
+          // 🔹 Status Message
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _statusMessage(item.actionCodeId),
+          ),
         ],
       ),
     );
+  }
+
+  // 🔹 Status Message Builder
+  Widget _statusMessage(int actionCodeId) {
+    switch (actionCodeId) {
+      case 3:
+        return Chip(
+          label: Text(
+            "Sent for Review",
+            style: TextStyle(color: Colors.indigo.shade800),
+          ),
+          backgroundColor: Colors.indigo.shade100,
+        );
+      case 5:
+        return Chip(
+          label: Text(
+            "Rejected",
+            style: TextStyle(color: Colors.redAccent),
+          ),
+          backgroundColor: Colors.red.shade100,
+        );
+      case 6:
+        return Chip(
+          label: Text(
+            "Sent for Review",
+            style: TextStyle(color: Colors.orange),
+          ),
+          backgroundColor: Colors.orange.shade100,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 
@@ -336,8 +378,17 @@ class GrievanceDetailPage extends StatefulWidget {
 
 class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
   File? _atrFile;
+  bool isActionValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Check if the action code is valid for ATR upload
+    isActionValid = widget.item.actionCodeId == 5 || widget.item.actionCodeId == 9;
+  }
 
   Future<void> pickATRDocument() async {
+    if (!isActionValid) return;  // ❌ Prevent if action is not valid
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null && result.files.single.path != null) {
       setState(() {
@@ -345,9 +396,38 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
       });
     }
   }
+  Future<void> _fetchUpdatedATRList(String grievanceId) async {
+    try {
+      var token = await SecureStorage.getAccessToken();
+      var response = await http.get(
+        Uri.parse("$baseURL/fetchATRDocuments?grievance_id=$grievanceId"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> atrData = jsonDecode(response.body);
+        final List<ATRItem> updatedATRItems = atrData.map((e) => ATRItem.fromJson(e)).toList();
+
+        // ✅ Update the list of ATR documents
+        setState(() {
+          widget.item.atrItems.clear();
+          widget.item.atrItems.addAll(updatedATRItems);
+        });
+      } else {
+        print("Failed to fetch ATR documents");
+      }
+    } catch (e) {
+      print("Error fetching updated ATR list: $e");
+    }
+  }
 
   Future<void> uploadATR(String grievanceId) async {
-    if (_atrFile == null) return;
+    if (_atrFile == null || !isActionValid) return;
+
+    // ✅ Disable button immediately after click
+    setState(() {
+      isActionValid = false;
+    });
 
     try {
       var token = await SecureStorage.getAccessToken();
@@ -361,12 +441,21 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
       var response = await request.send();
       if (response.statusCode == 200) {
+        // ✅ Show Snackbar for successful upload
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("ATR uploaded successfully")),
         );
+
+        // ✅ Clear the selected file
         setState(() {
           _atrFile = null;
         });
+
+        Navigator.push(context, MaterialPageRoute(builder: (context)=>Level2_AcceptedGrievancePage()));
+
+        // ✅ Refresh the ATR List after upload
+
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Failed to upload ATR")),
@@ -374,34 +463,65 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
       }
     } catch (e) {
       print("Upload failed: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("An error occurred while uploading.")),
+      );
+    } finally {
+      // ✅ Re-enable button after operation completes
+      setState(() {
+        isActionValid = widget.item.actionCodeId == 5 || widget.item.actionCodeId == 9;
+      });
     }
   }
 
 
-
-
-
+  @override
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("${item.title} (${item.grievance_id})",
-            style: const TextStyle(color: Colors.white)),
+        // 🔹 AppBar Title displaying the grievance title and ID
+        title: Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown, // 🔹 Scales down to fit
+            child: Text(
+              "${item.title} (${item.grievance_id})",
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
         backgroundColor: Colors.indigo,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 **Images Carousel**
+            // 🔹 Status Message - Shows the status of the grievance
+            Align(
+              alignment: Alignment.centerRight,
+              child: _statusMessage(item.actionCodeId),
+            ),
+            const SizedBox(height: 10),
+
+            // 🔹 Title and Description
+            Text("Title : ${item.title}"),
+            const SizedBox(height: 10),
+            Text("Description : ${item.description}"),
+            const SizedBox(height: 10),
+
+            // 🔹 Image Carousel Display
             if (item.imageUrls.isNotEmpty) ...[
               const Text("Images:", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               CarouselSlider(
-                options: CarouselOptions(height: 200, enlargeCenterPage: true),
+                options: CarouselOptions(
+                  height: 200,
+                  enlargeCenterPage: true,
+                ),
                 items: item.imageUrls.map((imgUrl) {
                   return GestureDetector(
                     onTap: () => launchUrl(Uri.parse(imgUrl)),
@@ -412,7 +532,7 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
               const SizedBox(height: 16),
             ],
 
-            // 🔹 **Complainant Documents**
+            // 🔹 Complainant Documents List
             if (item.documentUrls.isNotEmpty) ...[
               const Text("Complainant Documents:", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -420,34 +540,34 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
                 children: item.documentUrls.map((docUrl) {
                   return ListTile(
                     title: Text(docUrl.split('/').last),
-                    trailing: const Icon(Icons.open_in_new),
+                    trailing: const Icon(Icons.open_in_new, color: Colors.indigo),
                     onTap: () => launchUrl(Uri.parse(docUrl)),
                   );
                 }).toList(),
               ),
             ],
 
-            // 🔹 **ATR Documents with Versions**
+            // 🔹 ATR Display
+            const SizedBox(height: 20),
             if (item.atrItems.isNotEmpty) ...[
-              const Text('ATR Versions:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
+              const Text("ATR Documents:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: item.atrItems.map((atr) {
+                children: item.atrItems.map((ATRItem atrItem) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Version ${atr.version}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+                      Text("Version: ${atrItem.version}", style: const TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
-                      for (var docUrl in atr.documents)
-                        ListTile(
-                          title: Text(docUrl.split('/').last),
-                          trailing: const Icon(Icons.picture_as_pdf, color: Colors.indigo),
-                          onTap: () => launchUrl(Uri.parse(docUrl)),
-                        ),
+                      Column(
+                        children: atrItem.documents.map((docUrl) {
+                          return ListTile(
+                            title: Text(docUrl.split('/').last),
+                            trailing: const Icon(Icons.open_in_new, color: Colors.indigo),
+                            onTap: () => launchUrl(Uri.parse(docUrl)),
+                          );
+                        }).toList(),
+                      ),
                       const Divider(),
                     ],
                   );
@@ -457,21 +577,39 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
             const SizedBox(height: 20),
 
-            // 🔹 **Pick & Upload ATR Document**
-            if (item.actionCodeId == 5 || item.actionCodeId == 9) ...[
-              ElevatedButton.icon(
-                onPressed: pickATRDocument,
-                icon: const Icon(Icons.attach_file),
-                label: const Text("Pick ATR Document"),
+            // 🔹 Pick ATR Document Button
+            ElevatedButton.icon(
+              onPressed: isActionValid ? pickATRDocument : null,
+              icon: const Icon(Icons.attach_file),
+              label: const Text("Pick ATR Document"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isActionValid ? Colors.indigo : Colors.grey,
+                foregroundColor: Colors.white,
               ),
-              if (_atrFile != null) Text("Selected: ${_atrFile!.path.split('/').last}"),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: () => uploadATR(item.grievance_id),
-                icon: const Icon(Icons.upload_file),
-                label: const Text("Upload ATR"),
+            ),
+
+            // 🔹 Display Selected ATR Document Name
+            if (_atrFile != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  "Selected: ${_atrFile!.path.split('/').last}",
+                  style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.w500),
+                ),
               ),
-            ],
+
+            const SizedBox(height: 10),
+
+            // 🔹 Submit ATR Document Button
+            ElevatedButton.icon(
+              onPressed: isActionValid && _atrFile != null ? () => uploadATR(item.grievance_id) : null,
+              icon: const Icon(Icons.upload_file),
+              label: const Text("Submit ATR"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: (isActionValid && _atrFile != null) ? Colors.indigo : Colors.indigo.shade50,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ],
         ),
       ),
@@ -480,4 +618,35 @@ class _GrievanceDetailPageState extends State<GrievanceDetailPage> {
 
 
 
+  // 🔹 Status Message Builder
+  Widget _statusMessage(int actionCodeId) {
+    switch (actionCodeId) {
+      case 3:
+        return Chip(
+          label: Text(
+            "Sent for Review",
+            style: TextStyle(color: Colors.indigo.shade800),
+          ),
+          backgroundColor: Colors.indigo.shade100,
+        );
+      case 5:
+        return Chip(
+          label: Text(
+            "Rejected",
+            style: TextStyle(color: Colors.redAccent),
+          ),
+          backgroundColor: Colors.red.shade100,
+        );
+      case 6:
+        return Chip(
+          label: Text(
+            "Sent for Review",
+            style: TextStyle(color: Colors.orange),
+          ),
+          backgroundColor: Colors.orange.shade100,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 }

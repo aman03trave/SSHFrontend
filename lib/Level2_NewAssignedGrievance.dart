@@ -1,7 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'storage_service.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
@@ -67,7 +73,7 @@ class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
           onPressed: () => Navigator.pop(context),
         )
             : null,
-        backgroundColor: const Color(0xFF4285F4),
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -111,15 +117,8 @@ class _NewGrievancePageState extends State<Level2_NewGrievancePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GrievanceDetailPage(complaint: {
-                                "grievance_id": item.grievanceId,
-                                "title": item.title,
-                                "description": item.description,
-                                "block_name": item.blockName,
-                                "school_name": item.schoolName,
-                                "name": item.complainantName,
-                                "grievance_media": item.grievanceMedia,
-                              }),
+                              builder: (_) => GrievanceDetailPage(item: item
+                              ),
                             ),
                           );
                         },
@@ -150,6 +149,7 @@ class GrievanceItem {
   final String description;
   final String assigned_at;
   final Map<String, dynamic> grievanceMedia;
+
 
   GrievanceItem({
     required this.grievanceId,
@@ -193,6 +193,49 @@ class GrievanceItem {
       return 'Invalid date';
     }
   }
+}
+
+Future<void> downloadAndOpenDocument(String url, BuildContext context) async {
+  try {
+    bool permissionGranted = await requestStoragePermission();
+    if (!permissionGranted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Storage permission denied")));
+      return;
+    }
+
+    Directory directory = Platform.isAndroid
+        ? (await getExternalStorageDirectory())!
+        : await getApplicationDocumentsDirectory();
+
+    String fileName = url.split('/').last;
+    String filePath = "${directory.path}/$fileName";
+
+    Dio dio = Dio();
+    await dio.download(url, filePath);
+
+    OpenFile.open(filePath);
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Error: $e")));
+  }
+}
+
+Future<bool> requestStoragePermission() async {
+  if (Platform.isAndroid) {
+    if (await Permission.storage.isGranted) return true;
+
+    if (await Permission.storage.request().isGranted) {
+      return true;
+    }
+
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      return true;
+    }
+
+    return false;
+  }
+  return true;
 }
 
 String formatDate(String dateStr) {
@@ -247,121 +290,149 @@ class _GrievanceTile extends StatelessWidget {
   }
 }
 
-// class GrievanceDetailPage extends StatelessWidget {
-//   final GrievanceItem item;
-//
-//   const GrievanceDetailPage({super.key, required this.item});
-//
-//   Future<void> postGrievanceAction(String grievanceId, int actionCodeId) async {
-//     var token = await SecureStorage.getAccessToken();
-//     var response = await http.post(
-//       Uri.parse("$baseURL/addAction"),
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'Authorization': 'Bearer $token',
-//       },
-//       body: jsonEncode({
-//         'grievance_id': grievanceId,
-//         'action_code_id': actionCodeId,
-//       }),
-//     );
-//
-//     if (response.statusCode == 200) {
-//       print("Action submitted successfully.");
-//     } else {
-//       print("Failed to submit action: ${response.body}");
-//       throw Exception("Failed to submit action.");
-//     }
-//   }
-//
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text("Grievance Details"),
-//         backgroundColor: const Color(0xFF4285F4),
-//         foregroundColor: Colors.white,
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(24.0),
-//         child: SingleChildScrollView(
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               Text(item.title,
-//                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-//               const SizedBox(height: 12),
-//               Text("Description: ${item.description}"),
-//               const SizedBox(height: 8),
-//               Text("👤 Assigned By: ${item.complainantName}",
-//                   style: const TextStyle(fontSize: 16)),
-//               const SizedBox(height: 8),
-//               Text("🕒 Assigned: ${item.assigned_at}",
-//                   style: const TextStyle(fontSize: 16)),
-//               const SizedBox(height: 20),
-//               if (item.imageUrl != null) ...[
-//                 const Text("Attached Image:",
-//                     style: TextStyle(fontWeight: FontWeight.w600)),
-//                 const SizedBox(height: 10),
-//                 Image.network(item.imageUrl!, height: 200),
-//                 const SizedBox(height: 20),
-//               ],
-//               if (item.documentUrl != null) ...[
-//                 const Text("Attached Document:",
-//                     style: TextStyle(fontWeight: FontWeight.w600)),
-//                 const SizedBox(height: 10),
-//                 Image.network(item.documentUrl!, height: 200),
-//                 const SizedBox(height: 20),
-//               ],
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//                 children: [
-//                   ElevatedButton.icon(
-//                     icon: const Icon(Icons.check_circle_outline),
-//                     onPressed: () async {
-//                       try {
-//                         await postGrievanceAction(item.grievance_id, 9); // Accepted
-//                         ScaffoldMessenger.of(context).showSnackBar(
-//                           const SnackBar(content: Text("Grievance Accepted")),
-//                         );
-//                         Navigator.pop(context);
-//                       } catch (_) {
-//                         ScaffoldMessenger.of(context).showSnackBar(
-//                           const SnackBar(content: Text("Failed to accept grievance")),
-//                         );
-//                       }
-//                     },
-//                     label: const Text("Accept"),
-//                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-//                   ),
-//                   ElevatedButton.icon(
-//                     icon: const Icon(Icons.cancel_outlined),
-//                     onPressed: () async {
-//                       try {
-//                         await postGrievanceAction(item.grievance_id, 8); // Rejected
-//                         ScaffoldMessenger.of(context).showSnackBar(
-//                           const SnackBar(content: Text("Grievance Rejected")),
-//                         );
-//                         Navigator.pop(context);
-//                       } catch (_) {
-//                         ScaffoldMessenger.of(context).showSnackBar(
-//                           const SnackBar(content: Text("Failed to reject grievance")),
-//                         );
-//                       }
-//                     },
-//                     label: const Text("Reject"),
-//                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-//                   ),
-//                 ],
-//               ),
-//
-//               const SizedBox(height: 20),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+class GrievanceDetailPage extends StatelessWidget {
+  final GrievanceItem item;
+
+
+  const GrievanceDetailPage({super.key, required this.item});
+
+
+  Future<void> postGrievanceAction(String grievanceId, int actionCodeId) async {
+    var token = await SecureStorage.getAccessToken();
+    var response = await http.post(
+      Uri.parse("$baseURL/return_grievance"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'grievance_id': grievanceId,
+        'actioncodeId': actionCodeId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print("Action submitted successfully.");
+    } else {
+      print("Failed to submit action: ${response.body}");
+      throw Exception("Failed to submit action.");
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final List<dynamic> imageUrl = item.grievanceMedia['images'] ?? [];
+    final List<dynamic> documentUrl = item.grievanceMedia['documents'] ?? [];
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Grievance Details"),
+        backgroundColor: const Color(0xFF4285F4),
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.title,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Text("Description: ${item.description}"),
+              const SizedBox(height: 8),
+              Text("👤 Assigned By: ${item.complainantName}",
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text("🕒 Assigned: ${item.assigned_at}",
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 20),
+              if (imageUrl.isNotEmpty)
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 200.0,
+                    enlargeCenterPage: true,
+                  ),
+                  items: imageUrl.map((imagePath) {
+                    final imageUrl = "$baseURL/$imagePath";
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: Icon(Icons.broken_image),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+              documentUrl.isNotEmpty
+                  ? Column(
+                children: documentUrl.map((docUrl) {
+                  final fullDocUrl = "$baseURL/$docUrl";
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.download),
+                      label: Text("Download Document"),
+                      onPressed: () => downloadAndOpenDocument(fullDocUrl, context),
+                    ),
+                  );
+                }).toList(),
+              )
+                  : Text("No documents available."),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle_outline),
+                    onPressed: () async {
+                      try {
+                        await postGrievanceAction(item.grievanceId, 9); // Accepted
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Grievance Accepted")),
+                        );
+                        Navigator.pop(context);
+                      } catch (_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Failed to accept grievance")),
+                        );
+                      }
+                    },
+                    label: const Text("Accept"),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  ),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.cancel_outlined),
+                    onPressed: () async {
+                      try {
+                        await postGrievanceAction(item.grievanceId, 8); // Rejected
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Grievance Rejected")),
+                        );
+                        Navigator.pop(context);
+                      } catch (_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Failed to reject grievance")),
+                        );
+                      }
+                    },
+                    label: const Text("Return"),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:ssh/Level1_dashboard.dart';
 import 'package:ssh/refreshtoken.dart';
 import 'config.dart';
 import 'package:ssh/officer_G_detail_page.dart';
@@ -62,10 +63,10 @@ class _NewGrievancePageState extends State<NewGrievancePage> {
         leading: Navigator.canPop(context)
             ? IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => GrievanceDashboard())),
         )
             : null,
-        backgroundColor: const Color(0xFF4285F4),
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         elevation: 0,
       ),

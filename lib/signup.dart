@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'login.dart';
 import 'customsnackbar.dart';
@@ -299,8 +300,16 @@ class _SignupPageState extends State<SignupPage> {
                     // Phone Number Field
                     TextFormField(
                       controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(labelText: "Phone Number", border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                        labelText: 'Mobile Number',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      maxLength: 10, // Limits input to 10 digits
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(10), // Enforces the 10-digit limit
+                        FilteringTextInputFormatter.digitsOnly, // Allows only digits
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Phone number is required';
@@ -311,6 +320,27 @@ class _SignupPageState extends State<SignupPage> {
                         return null;
                       },
                     ),
+                    // TextFormField(
+                    //   decoration: InputDecoration(
+                    //     labelText: 'Mobile Number',
+                    //     border: OutlineInputBorder(),
+                    //   ),
+                    //   keyboardType: TextInputType.number,
+                    //   maxLength: 10, // Limits input to 10 digits
+                    //   inputFormatters: [
+                    //     LengthLimitingTextInputFormatter(10), // Enforces the 10-digit limit
+                    //     FilteringTextInputFormatter.digitsOnly, // Allows only digits
+                    //   ],
+                    //   validator: (value) {
+                    //     if (value == null || value.isEmpty) {
+                    //       return 'Please enter a mobile number';
+                    //     } else if (value.length != 10) {
+                    //       return 'Mobile number must be 10 digits';
+                    //     }
+                    //     return null;
+                    //   },
+                    // ),
+
                     SizedBox(height: 10),
 
                     // Complainant Category Dropdown

@@ -158,7 +158,7 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notifications"),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -194,8 +194,8 @@ class _LevelReminderPageState extends State<LevelReminderPage> {
               color: item['type'] == "Reminder"
                   ? Colors.orange[100] // Reminders are highlighted in orange
                   : (item['viewed'] ?? false) // Check if viewed is null, then default to false
-                  ? Colors.grey[300] // Viewed notifications are greyed out
-                  : const Color(0xFFEAF3FF), // Unviewed notifications are blue
+                  ? Colors.indigo.shade50 // Viewed notifications are greyed out
+                  : Colors.indigo.shade50, // Unviewed notifications are blue
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
